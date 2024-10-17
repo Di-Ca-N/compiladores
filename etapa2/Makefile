@@ -1,4 +1,4 @@
-ETAPA = etapa2
+TARGET = etapa2
 SRC := src
 OBJ := build
 
@@ -6,7 +6,7 @@ SOURCES := $(wildcard $(SRC)/*.c) $(SRC)/lex.yy.c $(SRC)/parser.tab.c
 OBJECTS := $(patsubst $(SRC)/%.c, $(OBJ)/%.o, $(SOURCES)) $(OBJ)/lex.yy.o $(OBJ)/parser.tab.o  
 
 
-$(ETAPA): $(OBJECTS)
+$(TARGET): $(OBJECTS)
 	$(CC) $^ -o $@ -lfl
 
 $(SRC)/lex.yy.c: $(SRC)/scanner.l
@@ -23,4 +23,4 @@ $(OBJ)/%.o: $(SRC)/%.c
 
 .PHONY: clean
 clean:
-	rm -f $(SRC)/lex.yy.c $(ETAPA) $(SRC)/parser.tab.c $(SRC)/parser.tab.h $(OBJ)/*.o
+	rm -f $(SRC)/lex.yy.c $(TARGET) $(SRC)/parser.tab.c $(SRC)/parser.tab.h $(OBJ)/*.o
