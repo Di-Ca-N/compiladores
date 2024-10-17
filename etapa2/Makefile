@@ -1,4 +1,4 @@
-ETAPA := $(shell basename $(CURDIR))
+ETAPA = etapa2
 SRC := src
 OBJ := build
 
