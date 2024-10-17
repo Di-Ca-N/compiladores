@@ -9,7 +9,7 @@ OBJECTS := $(patsubst $(SRC)/%.c, $(OBJ)/%.o, $(SOURCES)) $(OBJ)/lex.yy.o $(OBJ)
 $(ETAPA): $(OBJECTS)
 	$(CC) $^ -o $@ -lfl
 
-$(SRC)/lex.yy.c: $(SRC)/scanner.l $(SRC)/parser.tab.h
+$(SRC)/lex.yy.c: $(SRC)/scanner.l
 	flex -o $@ $(SRC)/scanner.l
 
 $(SRC)/parser.tab.c $(SRC)/parser.tab.h: $(SRC)/parser.y

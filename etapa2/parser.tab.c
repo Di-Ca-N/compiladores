@@ -74,7 +74,7 @@ int yylex(void);
 void yyerror (char const *mensagem);
 int get_line_number();
 
-#line 78 "src/parser.tab.c"
+#line 78 "parser.tab.c"
 
 # ifndef YY_CAST
 #  ifdef __cplusplus
@@ -97,7 +97,59 @@ int get_line_number();
 #  endif
 # endif
 
-#include "parser.tab.h"
+
+/* Debug traces.  */
+#ifndef YYDEBUG
+# define YYDEBUG 0
+#endif
+#if YYDEBUG
+extern int yydebug;
+#endif
+
+/* Token kinds.  */
+#ifndef YYTOKENTYPE
+# define YYTOKENTYPE
+  enum yytokentype
+  {
+    YYEMPTY = -2,
+    YYEOF = 0,                     /* "end of file"  */
+    YYerror = 256,                 /* error  */
+    YYUNDEF = 257,                 /* "invalid token"  */
+    TK_PR_INT = 258,               /* TK_PR_INT  */
+    TK_PR_FLOAT = 259,             /* TK_PR_FLOAT  */
+    TK_PR_IF = 260,                /* TK_PR_IF  */
+    TK_PR_ELSE = 261,              /* TK_PR_ELSE  */
+    TK_PR_WHILE = 262,             /* TK_PR_WHILE  */
+    TK_PR_RETURN = 263,            /* TK_PR_RETURN  */
+    TK_OC_LE = 264,                /* TK_OC_LE  */
+    TK_OC_GE = 265,                /* TK_OC_GE  */
+    TK_OC_EQ = 266,                /* TK_OC_EQ  */
+    TK_OC_NE = 267,                /* TK_OC_NE  */
+    TK_OC_AND = 268,               /* TK_OC_AND  */
+    TK_OC_OR = 269,                /* TK_OC_OR  */
+    TK_IDENTIFICADOR = 270,        /* TK_IDENTIFICADOR  */
+    TK_LIT_INT = 271,              /* TK_LIT_INT  */
+    TK_LIT_FLOAT = 272,            /* TK_LIT_FLOAT  */
+    TK_ERRO = 273                  /* TK_ERRO  */
+  };
+  typedef enum yytokentype yytoken_kind_t;
+#endif
+
+/* Value type.  */
+#if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
+typedef int YYSTYPE;
+# define YYSTYPE_IS_TRIVIAL 1
+# define YYSTYPE_IS_DECLARED 1
+#endif
+
+
+extern YYSTYPE yylval;
+
+
+int yyparse (void);
+
+
+
 /* Symbol kind.  */
 enum yysymbol_kind_t
 {
@@ -559,10 +611,10 @@ static const yytype_int8 yyrline[] =
       32,    33,    34,    34,    35,    37,    37,    38,    38,    39,
       39,    41,    42,    43,    44,    45,    46,    49,    50,    50,
       51,    51,    51,    53,    55,    55,    56,    56,    57,    59,
-      61,    62,    62,    64,    67,    68,    72,    73,    77,    78,
-      79,    83,    84,    85,    86,    87,    91,    92,    93,    96,
-      97,    98,    99,   103,   104,   105,   109,   110,   111,   112,
-     113
+      61,    62,    62,    64,    67,    68,    72,    73,    76,    77,
+      78,    81,    82,    83,    84,    85,    89,    90,    91,    94,
+      95,    96,    97,   101,   102,   103,   106,   107,   108,   109,
+     110
 };
 #endif
 
@@ -1475,7 +1527,7 @@ yyreduce:
   switch (yyn)
     {
 
-#line 1479 "src/parser.tab.c"
+#line 1531 "parser.tab.c"
 
       default: break;
     }
@@ -1699,7 +1751,7 @@ yyreturnlab:
   return yyresult;
 }
 
-#line 116 "src/parser.y"
+#line 112 "src/parser.y"
 
 void yyerror (char const *mensagem) {
     fprintf(stderr, "Error at line %d: %s\n", get_line_number(), mensagem);
