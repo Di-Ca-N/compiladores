@@ -1,18 +1,19 @@
 funcao = param1 <- int | param2 <- float > int { // Função
     int a, b, c<=2;           // Declaracao de Variavel
     b = expr ;                // Atribuicao de Variavel 
-    outra_funcao(a,  expr ); // Chamada de Funcao
+    outra_funcao(a,  expr );  // Chamada de Funcao
 
-    1 * func() + a - (c < 4); // Expressão
-    if (expr) {}              // IF
+    expr = 1 * func(arg) + a - (c < 4); // Expressão
+    if (expr) {};             // IF
 
-    if (expr) {} else {}      // If com else
+    if (expr) {} else {};     // If com else
 
-    while (expr) {}           // While
+    while (expr) {};          // While
 
     return  expr ;            // Retorno
 }
 
 main = > int {
+    a = !!!!1;
 
 }

@@ -7,7 +7,6 @@ Grupo:
 #include "parser.tab.h"
 %}
 %option yylineno
-
 %%
 
 int return TK_PR_INT;

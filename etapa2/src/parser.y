@@ -57,7 +57,7 @@ identificador: TK_IDENTIFICADOR | TK_IDENTIFICADOR TK_OC_LE TK_LIT_FLOAT | TK_ID
 
 atribuicao : TK_IDENTIFICADOR '=' expressao;
 
-chamadaFuncao: TK_IDENTIFICADOR '(' listaDeArgumentos ')' | TK_IDENTIFICADOR '(' ')';
+chamadaFuncao: TK_IDENTIFICADOR '(' listaDeArgumentos ')';
 listaDeArgumentos: listaDeArgumentos ',' argumento | argumento;
 argumento: expressao;
 
@@ -106,8 +106,8 @@ expressao2
 
 expressao1
     : expressao0
-    | '-' expressao0
-    | '!' expressao0
+    | '-' expressao1
+    | '!' expressao1
     ;
 
 expressao0
