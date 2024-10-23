@@ -7,7 +7,7 @@ Grupo:
 #include <stdio.h>
 int yylex(void);
 void yyerror (char const *mensagem);
-int get_line_number();
+extern int get_line_number();
 %}
 %define parse.error verbose 
 
@@ -41,9 +41,10 @@ corpoFuncao: blocoDeComandos;
 
 blocoDeComandos: '{' listaDeComandos '}' | '{' '}';
 listaDeComandos: listaDeComandos comando | comando;
-comando: blocoDeComandos | comandoSimples ';';
+comando: comandoSimples ';';
 comandoSimples
     : declaracaoVariavel
+    | blocoDeComandos
     | atribuicao
     | chamadaFuncao
     | retorno
