@@ -1,0 +1,50 @@
+/*
+Grupo:
+- Diego Cardoso Nunes (00333984)
+- Geancarlo Kozenieski (00264414)
+*/
+%{
+#include "parser.tab.h"
+#include "tree.h"
+
+struct node_t *node_terminal(enum node_type_t type, char *label);
+%}
+%option yylineno
+%%
+
+int return TK_PR_INT;
+float return TK_PR_FLOAT;
+if return TK_PR_IF;
+else return TK_PR_ELSE;
+while return TK_PR_WHILE;
+return return TK_PR_RETURN;
+
+"<=" return TK_OC_LE;
+">=" return TK_OC_GE;
+"==" return TK_OC_EQ;
+"!=" return TK_OC_NE;
+"&" return TK_OC_AND;
+"|" return TK_OC_OR;
+
+[!\*/+\-%<>(){}\=,;] { return yytext[0]; }
+
+[a-z_][a-z0-9_]* { yylval = node_terminal(NODE_IDENTIFIER, yytext); return TK_IDENTIFICADOR;}
+[0-9]+ { yylval = node_terminal(NODE_INT_LITERAL, yytext); return TK_LIT_INT; }
+[0-9]*"."[0-9]+ { yylval = node_terminal(NODE_FLOAT_LITERAL, yytext); return TK_LIT_FLOAT; };
+
+[[:blank:]]
+"\n"
+"//".*
+
+. return TK_ERRO;
+
+%%
+int get_line_number(void) {
+    return yylineno;
+}
+
+struct node_t *node_terminal(enum node_type_t type, char *label) {
+    char *buf = malloc(strlen(yytext) + 1); 
+    strcpy(buf, yytext); 
+    return node_create(type, buf);
+}
