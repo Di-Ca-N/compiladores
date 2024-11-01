@@ -24,11 +24,11 @@ $(TARGET): $(OBJECTS)
 
 $(BUILD_OBJ)/%.o: $(SRC)/%.c
 	@mkdir -p $(BUILD_OBJ) $(BUILD_DEPS)
-	$(CC) -MD -MF $(BUILD_DEPS)/$*.d -I$(INC) -I$(BUILD_CODE) -c $(SRC)/$*.c -o $@ $(CFLAGS)
+	$(CC) -MMD -MF $(BUILD_DEPS)/$*.d -I$(INC) -I$(BUILD_CODE) -c $(SRC)/$*.c -o $@ $(CFLAGS)
 
 $(BUILD_OBJ)/%.o: $(BUILD_CODE)/%.c
 	@mkdir -p $(BUILD_OBJ) $(BUILD_DEPS)
-	$(CC) -MD -MF $(BUILD_DEPS)/$*.d -I$(INC) -I$(BUILD_CODE) -c $(BUILD_CODE)/$*.c -o $@ $(CFLAGS)
+	$(CC) -MMD -MF $(BUILD_DEPS)/$*.d -I$(INC) -I$(BUILD_CODE) -c $(BUILD_CODE)/$*.c -o $@ $(CFLAGS)
 
 -include $(BUILD_DEPS)/*.d
 
