@@ -10,7 +10,6 @@ Grupo:
 
 %{
 #include <stdio.h>
-#include "tree.h"
 int yylex(void);
 void yyerror (char const *mensagem);
 extern int get_line_number();
