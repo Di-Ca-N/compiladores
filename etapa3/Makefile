@@ -39,4 +39,4 @@ $(BUILD_CODE)/parser.tab.c: $(SRC)/parser.y
 
 .PHONY: clean
 clean:
-	rm -rf $(SRC)/lex.yy.c $(TARGET) $(SRC)/parser.tab.c $(INC)/parser.tab.h $(BUILD)
+	rm -rf $(TARGET) $(BUILD)
