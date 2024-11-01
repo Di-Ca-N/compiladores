@@ -29,9 +29,9 @@ $(BUILD_OBJ)/%.o: $(BUILD_CODE)/%.c
 
 $(SOURCES): $(GENERATED) 
 
-$(BUILD_CODE)/lex.yy.c: $(SRC)/scanner.l
+$(BUILD_CODE)/lex.yy.c: $(SRC)/scanner.l $(BUILD_CODE)/parser.tab.c
 	@mkdir -p $(BUILD_CODE)
-	flex -o $@ $^
+	flex -o $@ $<
 
 $(BUILD_CODE)/parser.tab.c: $(SRC)/parser.y
 	@mkdir -p $(BUILD_CODE)
