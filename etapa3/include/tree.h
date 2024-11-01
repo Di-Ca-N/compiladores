@@ -36,4 +36,4 @@ struct node_t {
 struct node_t *node_create(node_type_t type, char *label);
 void node_add_child(struct node_t *parent, struct node_t *child);
 void node_print(struct node_t *node, int level);
-void free_node(struct node_t *node);
+void node_free(struct node_t *node);

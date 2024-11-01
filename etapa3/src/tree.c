@@ -34,12 +34,12 @@ void node_print(struct node_t *node, int level) {
     }
 }
 
-void free_node(struct node_t *node) {
+void node_free(struct node_t *node) {
     if (node == NULL) {
         return;
     }
     for (int i = 0; i < node->nChildren; i++) {
-        free_node(node->children[i]);
+        node_free(node->children[i]);
     }
     free(node->label);
     free(node->children);
