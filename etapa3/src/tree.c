@@ -1,8 +1,8 @@
-#include <tree.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include "tree.h"
 
-struct node_t *node_create(enum node_type_t type, char *label) {
+struct node_t *node_create(node_type_t type, char *label) {
     struct node_t *node = malloc(sizeof(struct node_t));
     node->type = type;
     node->label = label;

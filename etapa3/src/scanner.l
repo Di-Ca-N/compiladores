@@ -7,9 +7,12 @@ Grupo:
 #include "parser.tab.h"
 #include "tree.h"
 
-struct node_t *node_terminal(enum node_type_t type, char *label);
+struct node_t *node_terminal(node_type_t type, char *label);
 %}
 %option yylineno
+%option noinput
+%option nounput
+
 %%
 
 int return TK_PR_INT;
@@ -43,8 +46,8 @@ int get_line_number(void) {
     return yylineno;
 }
 
-struct node_t *node_terminal(enum node_type_t type, char *label) {
-    char *buf = malloc(strlen(yytext) + 1); 
-    strcpy(buf, yytext); 
+struct node_t *node_terminal(node_type_t type, char *label) {
+    char *buf = malloc(strlen(label) + 1); 
+    strcpy(buf, label); 
     return node_create(type, buf);
 }

@@ -3,13 +3,18 @@ Grupo:
 - Diego Cardoso Nunes (00333984)
 - Geancarlo Kozenieski (00264414)
 */
+
+%code requires {
+    #include "tree.h"
+}
+
 %{
 #include <stdio.h>
-#include <tree.h>
+#include "tree.h"
 int yylex(void);
 void yyerror (char const *mensagem);
 extern int get_line_number();
-struct node_t *node_binary(enum node_type_t type, char *label, struct node_t *left, struct node_t *right);
+struct node_t *node_binary(node_type_t type, char *label, struct node_t *left, struct node_t *right);
 %}
 
 %define parse.error verbose 
@@ -130,7 +135,7 @@ void yyerror (char const *mensagem) {
     fprintf(stderr, "Error at line %d: %s\n", get_line_number(), mensagem);
 }
 
-struct node_t *node_binary(enum node_type_t type, char *label, struct node_t *left, struct node_t *right) {
+struct node_t *node_binary(node_type_t type, char *label, struct node_t *left, struct node_t *right) {
     struct node_t *root = node_create(type, label); 
     node_add_child(root, left); 
     node_add_child(root, right);
