@@ -33,7 +33,7 @@ $(BUILD_CODE)/lex.yy.c: $(SRC)/scanner.l
 	@mkdir -p $(BUILD_CODE)
 	flex -o $@ $^
 
-$(BUILD_CODE)/parser.tab.c $(BUILD_CODE)/parser.tab.h: $(SRC)/parser.y
+$(BUILD_CODE)/parser.tab.c: $(SRC)/parser.y
 	@mkdir -p $(BUILD_CODE)
 	bison -d -b $(BUILD_CODE)/parser $< -Wall
 
