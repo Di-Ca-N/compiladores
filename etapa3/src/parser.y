@@ -14,7 +14,6 @@ Grupo:
 int yylex(void);
 void yyerror (char const *mensagem);
 extern int get_line_number();
-struct node_t *node_binary(node_type_t type, char *label, struct node_t *left, struct node_t *right);
 %}
 
 %define parse.error verbose 
@@ -66,7 +65,7 @@ listaDeIdentificadores: listaDeIdentificadores ',' identificador | identificador
 identificador: TK_IDENTIFICADOR | TK_IDENTIFICADOR TK_OC_LE TK_LIT_FLOAT | TK_IDENTIFICADOR TK_OC_LE TK_LIT_INT;
 
 atribuicao 
-    : TK_IDENTIFICADOR '=' expressao {$$ = node_binary(NODE_ASSIGN, "=", $1, $3); node_print($$, 0);}
+    : TK_IDENTIFICADOR '=' expressao
     ;
 
 chamadaFuncao: TK_IDENTIFICADOR '(' listaDeArgumentos ')';
@@ -81,63 +80,56 @@ blocoElse: TK_PR_ELSE blocoDeComandos | %empty;
 blocoWhile: TK_PR_WHILE '(' expressao ')' blocoDeComandos;
 
 expressao
-    : expressao6                    { $$ = $1; }
-    | expressao TK_OC_OR expressao6 { $$ = node_binary(NODE_EXPR, "|", $1, $3); } 
+    : expressao6
+    | expressao TK_OC_OR expressao6 
     ;
 
 expressao6
-    : expressao5                      { $$ = $1; }
-    | expressao6 TK_OC_AND expressao5 { $$ = node_binary(NODE_EXPR, "&", $1, $3); } 
+    : expressao5
+    | expressao6 TK_OC_AND expressao5 
     ;
 
 expressao5
-    : expressao4                      { $$ = $1; }
-    | expressao5 TK_OC_EQ expressao4  { $$ = node_binary(NODE_EXPR, "==", $1, $3);  } 
-    | expressao5 TK_OC_NE expressao4  { $$ = node_binary(NODE_EXPR, "!=", $1, $3);  } 
+    : expressao4
+    | expressao5 TK_OC_EQ expressao4
+    | expressao5 TK_OC_NE expressao4
     ;
 
 expressao4
-    : expressao3                      { $$ = $1; }
-    | expressao4 '<' expressao3       { $$ = node_binary(NODE_EXPR, "<", $1, $3); } 
-    | expressao4 '>' expressao3       { $$ = node_binary(NODE_EXPR, ">", $1, $3); } 
-    | expressao4 TK_OC_LE expressao3  { $$ = node_binary(NODE_EXPR, "<=", $1, $3); } 
-    | expressao4 TK_OC_GE expressao3  { $$ = node_binary(NODE_EXPR, ">=", $1, $3); } 
+    : expressao3
+    | expressao4 '<' expressao3
+    | expressao4 '>' expressao3
+    | expressao4 TK_OC_LE expressao3
+    | expressao4 TK_OC_GE expressao3
     ;
 
 expressao3
-    : expressao2                { $$ = $1; }
-    | expressao3 '+' expressao2 { $$ = node_binary(NODE_EXPR, "+", $1, $3); } 
-    | expressao3 '-' expressao2 { $$ = node_binary(NODE_EXPR, "-", $1, $3); } 
+    : expressao2
+    | expressao3 '+' expressao2
+    | expressao3 '-' expressao2
 
 expressao2
-    : expressao1                { $$ = $1; }
-    | expressao2 '*' expressao1 { $$ = node_binary(NODE_EXPR, "*", $1, $3); } 
-    | expressao2 '/' expressao1 { $$ = node_binary(NODE_EXPR, "/", $1, $3); } 
-    | expressao2 '%' expressao1 { $$ = node_binary(NODE_EXPR, "%", $1, $3); } 
+    : expressao1
+    | expressao2 '*' expressao1
+    | expressao2 '/' expressao1
+    | expressao2 '%' expressao1
     ;
 
 expressao1
-    : expressao0     { $$ = $1; }
-    | '-' expressao1 { $$ = node_create(NODE_EXPR, "-"); node_add_child($$, $2);  } 
-    | '!' expressao1 { $$ = node_create(NODE_EXPR, "!"); node_add_child($$, $2);  }
+    : expressao0
+    | '-' expressao1
+    | '!' expressao1
     ;
 
 expressao0
-    : '(' expressao ')' { $$ = $2; }
-    | TK_LIT_FLOAT      { $$ = $1; }
-    | TK_LIT_INT        { $$ = $1; }
-    | TK_IDENTIFICADOR  { $$ = $1; }
-    | chamadaFuncao     { $$ = $1; }
+    : '(' expressao ')'
+    | TK_LIT_FLOAT
+    | TK_LIT_INT
+    | TK_IDENTIFICADOR
+    | chamadaFuncao
     ;
 
 %%
 void yyerror (char const *mensagem) {
     fprintf(stderr, "Error at line %d: %s\n", get_line_number(), mensagem);
-}
-
-struct node_t *node_binary(node_type_t type, char *label, struct node_t *left, struct node_t *right) {
-    struct node_t *root = node_create(type, label); 
-    node_add_child(root, left); 
-    node_add_child(root, right);
-    return root;
 }

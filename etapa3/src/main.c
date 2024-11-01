@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include "parser.tab.h"
+#include "tree.h"
 
 extern int yyparse(void);
 extern int yylex_destroy(void);

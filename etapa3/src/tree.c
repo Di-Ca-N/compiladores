@@ -12,6 +12,9 @@ struct node_t *node_create(node_type_t type, char *label) {
 }
 
 void node_add_child(struct node_t *parent, struct node_t *child) {
+    if (parent == NULL || child == NULL) {
+        return;
+    }
     parent->children = realloc(parent->children, sizeof(struct node_t *) * (parent->nChildren + 1));
     parent->children[parent->nChildren] = child;
     parent->nChildren++;

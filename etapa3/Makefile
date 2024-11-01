@@ -1,39 +1,54 @@
 TARGET = etapa3
 SRC := src
 INC := include
-OBJ := build
+BUILD := build
+BUILD_CODE := $(BUILD)/code
+BUILD_OBJ := $(BUILD)/obj
+BUILD_DEPS := $(BUILD)/deps
 CFLAGS := -Wall -Wextra
 
-GENERATED := $(SRC)/lex.yy.c $(SRC)/parser.tab.c
-SOURCES := $(wildcard $(SRC)/*.c) $(GENERATED)
-REAL_SOURCES := $(filter-out $(GENERATED), $(SOURCES))
-OBJECTS := $(patsubst $(SRC)/%.c, $(OBJ)/%.o, $(SOURCES))
-DEPS := $(patsubst $(SRC)/%.c, $(OBJ)/%.d, $(SOURCES))
+GENERATED := $(BUILD_CODE)/lex.yy.c $(BUILD_CODE)/parser.tab.c
+SOURCES := $(wildcard $(SRC)/*.c)
+ALL_SOURCES := $(SOURCES) $(GENERATED)
+
+SOURCE_OBJ := $(patsubst $(SRC)/%.c, $(BUILD_OBJ)/%.o, $(SOURCES))
+GEN_OBJ := $(patsubst $(BUILD_CODE)/%.c, $(BUILD_OBJ)/%.o, $(GENERATED))
+OBJECTS := $(SOURCE_OBJ) $(GEN_OBJ)
+
+SOURCE_DEPS := $(patsubst $(SRC)/%.c, $(BUILD_DEPS)/%.d, $(SOURCES))
+GEN_DEPS := $(patsubst $(BUILD_CODE)/%.c, $(BUILD_DEPS)/%.d, $(GENERATED))
+DEPS := $(SOURCE_DEPS) $(GEN_DEPS)
 
 $(TARGET): $(OBJECTS)
 	$(CC) $^ -o $@ -lfl $(CFLAGS)
 
-$(OBJ)/%.o: $(SRC)/%.c
-	@mkdir -p $(OBJ)
-	$(CC) -MMD -I$(INC) -c $(SRC)/$*.c -o $@ $(CFLAGS)
+$(BUILD_OBJ)/%.o: $(SRC)/%.c
+	@mkdir -p $(BUILD_OBJ) $(BUILD_DEPS)
+	$(CC) -MD -MF $(BUILD_DEPS)/$*.d -I$(INC) -I$(BUILD_CODE) -c $(SRC)/$*.c -o $@ $(CFLAGS)
 
--include $(OBJ)/*.d
+$(BUILD_OBJ)/%.o: $(BUILD_CODE)/%.c
+	@mkdir -p $(BUILD_OBJ) $(BUILD_DEPS)
+	$(CC) -MD -MF $(BUILD_DEPS)/$*.d -I$(INC) -I$(BUILD_CODE) -c $(BUILD_CODE)/$*.c -o $@ $(CFLAGS)
 
-$(REAL_SOURCES): $(GENERATED) 
+-include $(BUILD_DEPS)/*.d
 
-$(SRC)/lex.yy.c: $(SRC)/scanner.l
+$(SOURCES): $(GENERATED) 
+
+$(BUILD_CODE)/lex.yy.c: $(SRC)/scanner.l
+	@mkdir -p $(BUILD_CODE)
 	flex -o $@ $^
 
-$(SRC)/parser.tab.c $(INC)/parser.tab.h: $(SRC)/parser.y
-	bison -d -b $(SRC)/parser $< -Wall
-	mv $(SRC)/parser.tab.h $(INC)/parser.tab.h 
+$(BUILD_CODE)/parser.tab.c $(BUILD_CODE)/parser.tab.h: $(SRC)/parser.y
+	@mkdir -p $(BUILD_CODE)
+	bison -d -b $(BUILD_CODE)/parser $< -Wall
 
 echo:
-	@echo $(REAL_SOURCES)
+	@echo $(SOURCES)
 	@echo $(GENERATED)
+	@echo $(ALL_SOURCES)
 	@echo $(OBJECTS)
 	@echo $(DEPS)
 
 .PHONY: clean
 clean:
-	rm -rf $(SRC)/lex.yy.c $(TARGET) $(SRC)/parser.tab.c $(INC)/parser.tab.h $(OBJ)
+	rm -rf $(SRC)/lex.yy.c $(TARGET) $(SRC)/parser.tab.c $(INC)/parser.tab.h $(BUILD)
