@@ -9,26 +9,21 @@ CFLAGS := -Wall -Wextra
 
 GENERATED := $(BUILD_CODE)/lex.yy.c $(BUILD_CODE)/parser.tab.c
 SOURCES := $(wildcard $(SRC)/*.c)
-ALL_SOURCES := $(SOURCES) $(GENERATED)
 
 SOURCE_OBJ := $(patsubst $(SRC)/%.c, $(BUILD_OBJ)/%.o, $(SOURCES))
 GEN_OBJ := $(patsubst $(BUILD_CODE)/%.c, $(BUILD_OBJ)/%.o, $(GENERATED))
 OBJECTS := $(SOURCE_OBJ) $(GEN_OBJ)
-
-SOURCE_DEPS := $(patsubst $(SRC)/%.c, $(BUILD_DEPS)/%.d, $(SOURCES))
-GEN_DEPS := $(patsubst $(BUILD_CODE)/%.c, $(BUILD_DEPS)/%.d, $(GENERATED))
-DEPS := $(SOURCE_DEPS) $(GEN_DEPS)
 
 $(TARGET): $(OBJECTS)
 	$(CC) $^ -o $@ -lfl $(CFLAGS)
 
 $(BUILD_OBJ)/%.o: $(SRC)/%.c
 	@mkdir -p $(BUILD_OBJ) $(BUILD_DEPS)
-	$(CC) -MMD -MF $(BUILD_DEPS)/$*.d -I$(INC) -I$(BUILD_CODE) -c $(SRC)/$*.c -o $@ $(CFLAGS)
+	$(CC) -MMD -MF $(BUILD_DEPS)/$*.d -I$(INC) -I$(BUILD_CODE) -c $< -o $@ $(CFLAGS)
 
 $(BUILD_OBJ)/%.o: $(BUILD_CODE)/%.c
 	@mkdir -p $(BUILD_OBJ) $(BUILD_DEPS)
-	$(CC) -MMD -MF $(BUILD_DEPS)/$*.d -I$(INC) -I$(BUILD_CODE) -c $(BUILD_CODE)/$*.c -o $@ $(CFLAGS)
+	$(CC) -MMD -MF $(BUILD_DEPS)/$*.d -I$(INC) -I$(BUILD_CODE) -c $< -o $@ $(CFLAGS)
 
 -include $(BUILD_DEPS)/*.d
 
@@ -41,13 +36,6 @@ $(BUILD_CODE)/lex.yy.c: $(SRC)/scanner.l
 $(BUILD_CODE)/parser.tab.c $(BUILD_CODE)/parser.tab.h: $(SRC)/parser.y
 	@mkdir -p $(BUILD_CODE)
 	bison -d -b $(BUILD_CODE)/parser $< -Wall
-
-echo:
-	@echo $(SOURCES)
-	@echo $(GENERATED)
-	@echo $(ALL_SOURCES)
-	@echo $(OBJECTS)
-	@echo $(DEPS)
 
 .PHONY: clean
 clean:
