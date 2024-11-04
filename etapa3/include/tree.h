@@ -16,8 +16,9 @@ typedef enum {
 } node_type_t;
 
 typedef enum {
-    TYPE_INT,
-    TYPE_FLOAT,
+    TYPE_LIT_INT,
+    TYPE_LIT_FLOAT,
+    TYPE_IDENTIFIER,
 } lexical_type_t;
 
 struct lexical_value_t {
@@ -31,9 +32,11 @@ struct node_t {
     int nChildren;
     char *label;
     struct node_t **children;
+    struct node_t *next;
 };
 
 struct node_t *node_create(node_type_t type, char *label);
 void node_add_child(struct node_t *parent, struct node_t *child);
 void node_print(struct node_t *node, int level);
+void node_append(struct node_t *first, struct node_t *new);
 void node_free(struct node_t *node);

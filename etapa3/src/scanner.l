@@ -7,7 +7,8 @@ Grupo:
 #include "parser.tab.h"
 #include "tree.h"
 
-struct node_t *node_terminal(node_type_t type, char *label);
+struct lexical_value_t *lexical_value(lexical_type_t type, char* label);
+
 %}
 %option yylineno
 %option noinput
@@ -31,9 +32,9 @@ return return TK_PR_RETURN;
 
 [!\*/+\-%<>(){}\=,;] { return yytext[0]; }
 
-[a-z_][a-z0-9_]* { yylval = node_terminal(NODE_IDENTIFIER, yytext); return TK_IDENTIFICADOR;}
-[0-9]+ { yylval = node_terminal(NODE_INT_LITERAL, yytext); return TK_LIT_INT; }
-[0-9]*"."[0-9]+ { yylval = node_terminal(NODE_FLOAT_LITERAL, yytext); return TK_LIT_FLOAT; };
+[a-z_][a-z0-9_]* { yylval.lexical_value = lexical_value(TYPE_IDENTIFIER, yytext); return TK_IDENTIFICADOR;}
+[0-9]+ { yylval.lexical_value = lexical_value(TYPE_LIT_INT, yytext); return TK_LIT_INT; }
+[0-9]*"."[0-9]+ { yylval.lexical_value = lexical_value(TYPE_LIT_FLOAT, yytext); return TK_LIT_FLOAT; }
 
 [[:blank:]]
 "\n"
@@ -46,8 +47,11 @@ int get_line_number(void) {
     return yylineno;
 }
 
-struct node_t *node_terminal(node_type_t type, char *label) {
-    char *buf = malloc(strlen(label) + 1); 
-    strcpy(buf, label); 
-    return node_create(type, buf);
+struct lexical_value_t *lexical_value(lexical_type_t type, char* label) {
+    struct lexical_value_t *lexVal = malloc(sizeof(struct lexical_value_t));
+    lexVal->lineNumber=get_line_number();
+    lexVal->type = type;
+    lexVal->value = strdup(label);
+    return lexVal;
 }
+
