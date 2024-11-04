@@ -70,17 +70,20 @@ listaDeComandos
                                     $$ = $1; 
                                 }
                               }
-    | comando                 { $$ = $1; }
+    | comando  { $$ = $1; }
     ;
 
-comando: comandoSimples ';' { $$ = $1; } ;
+comando
+    : comandoSimples ';' { $$ = $1; } 
+    ;
+
 comandoSimples
-    : declaracaoVariavel  { $$ = NULL; }
+    : declaracaoVariavel  { $$ = NULL; } // ToDo
     | blocoDeComandos     { $$ = $1; node_print($$, 0); printf("--------\n"); }
     | atribuicao          { $$ = $1; node_print($$, 0); printf("--------\n"); }
     | chamadaFuncao       { $$ = $1; node_print($$, 0); printf("--------\n"); }
-    | retorno             { $$ = $1; node_print($$, 0); printf("--------\n"); }
-    | blocoIf             { $$ = $1; node_print($$, 0); printf("--------\n"); }
+    | retorno             { $$ = NULL; } // ToDo
+    | blocoIf             { $$ = NULL; } // ToDo
     | blocoWhile          { $$ = $1; node_print($$, 0); printf("--------\n"); }
     ;
 
@@ -93,7 +96,7 @@ identificador
     ;
 
 atribuicao 
-    : terminal_identificador '=' expressao { $$ = node_create(NODE_ASSIGN, "="); node_add_child($$, $1); node_add_child($$, $3); }
+    : terminal_identificador '=' expressao { $$ = binary_op(NODE_ASSIGN, "=", $1, $3); }
     ;
 
 chamadaFuncao
@@ -117,26 +120,16 @@ argumento
     ;
 
 retorno
-    : TK_PR_RETURN expressao { $$ = node_create(NODE_RETURN, "return"); node_add_child($$, $2); }
+    : TK_PR_RETURN expressao
     ;
 
 blocoIf
     : TK_PR_IF '(' expressao ')' blocoDeComandos blocoElse 
-        { 
-            $$ = node_create(NODE_IF, "if"); 
-            node_add_child($$, $3); 
-            if ($5 != NULL) {
-                node_add_child($$, $5);
-            }
-            if ($6 != NULL) {
-                node_add_child($$, $6);
-            }
-        }
     ;
 
 blocoElse
-    : TK_PR_ELSE blocoDeComandos { $$ = $2; } 
-    | %empty { $$ = NULL; }
+    : TK_PR_ELSE blocoDeComandos
+    | %empty
     ;
 
 blocoWhile
