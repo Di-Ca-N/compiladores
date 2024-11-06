@@ -82,7 +82,7 @@ comandoSimples
     | blocoDeComandos     { $$ = $1; node_print($$, 0); printf("--------\n"); }
     | atribuicao          { $$ = $1; node_print($$, 0); printf("--------\n"); }
     | chamadaFuncao       { $$ = $1; node_print($$, 0); printf("--------\n"); }
-    | retorno             { $$ = NULL; } // ToDo
+    | retorno             { $$ = $1; node_print($$, 0); printf("--------\n"); }
     | blocoIf             { $$ = NULL; } // ToDo
     | blocoWhile          { $$ = $1; node_print($$, 0); printf("--------\n"); }
     ;
@@ -120,7 +120,7 @@ argumento
     ;
 
 retorno
-    : TK_PR_RETURN expressao
+    : TK_PR_RETURN expressao { $$ = node_create(NODE_RETURN, "return"); node_add_child($$, $2); }
     ;
 
 blocoIf
