@@ -1,3 +1,9 @@
+/*
+Grupo:
+- Diego Cardoso Nunes (00333984)
+- Geancarlo Kozenieski (00264414)
+*/
+
 #pragma once
 
 typedef enum {
@@ -35,8 +41,11 @@ struct node_t {
     struct node_t *next;
 };
 
+
 struct node_t *node_create(node_type_t type, char *label);
 void node_add_child(struct node_t *parent, struct node_t *child);
 void node_print(struct node_t *node, int level);
 void node_append(struct node_t *first, struct node_t *new);
 void node_free(struct node_t *node);
+struct lexical_value_t *lexical_value_create(lexical_type_t type, char* label);
+void lexical_value_free(struct lexical_value_t *lex_val);
