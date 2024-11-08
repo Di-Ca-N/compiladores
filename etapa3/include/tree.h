@@ -40,3 +40,6 @@ void node_add_child(struct node_t *parent, struct node_t *child);
 void node_print(struct node_t *node, int level);
 void node_append(struct node_t *first, struct node_t *new);
 void node_free(struct node_t *node);
+struct lexical_value_t *lexical_value_create(lexical_type_t type, char* label);
+void lexical_value_free(struct lexical_value_t *value);
+void exporta(void *arvore);

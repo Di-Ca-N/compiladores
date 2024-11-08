@@ -44,16 +44,38 @@ struct node_t *binary_op(node_type_t type, char* label, struct node_t *left, str
 %type<ast_node> expressao0 expressao1 expressao2 expressao3 expressao4 expressao5 expressao6 expressao chamadaFuncao
 %type<ast_node> terminal_identificador terminal_lit_float terminal_lit_int comandoSimples atribuicao declaracaoVariavel
 %type<ast_node> retorno blocoIf blocoElse blocoWhile blocoDeComandos listaDeComandos comando argumento listaDeArgumentos
+%type<ast_node> identificador listaDeIdentificadores corpoFuncao tipo parametro listaDeParametros cabecalhoFuncao funcao
+%type<ast_node> listaDeFuncoes programa
 
 %% 
-programa: listaDeFuncoes | %empty;
-listaDeFuncoes: listaDeFuncoes funcao | funcao;
-funcao: cabecalhoFuncao corpoFuncao;
-cabecalhoFuncao: terminal_identificador '=' listaDeParametros '>' tipo | terminal_identificador '=' '>' tipo;
-listaDeParametros: listaDeParametros TK_OC_OR parametro | parametro;
-parametro: terminal_identificador '<' '-' tipo;
-tipo: TK_PR_INT | TK_PR_FLOAT;
-corpoFuncao: blocoDeComandos;
+programa
+    : listaDeFuncoes { $$ = $1; exporta($$); node_free($$); }
+    | %empty { $$ = NULL; };
+
+listaDeFuncoes
+    : listaDeFuncoes funcao { node_append($1, $2); $$ = $1; } 
+    | funcao { $$ = $1; }
+    ;
+
+funcao: cabecalhoFuncao corpoFuncao { $$ = node_create(NODE_FUNC, $1->label); node_add_child($$, $2); node_free($1);};
+
+cabecalhoFuncao
+    : terminal_identificador '=' listaDeParametros '>' tipo { $$ = $1; } 
+    | terminal_identificador '=' '>' tipo { $$ = $1; }
+    ;
+
+listaDeParametros
+    : listaDeParametros TK_OC_OR parametro { $$ = NULL; }
+    | parametro { $$ = NULL; }
+    ;
+
+parametro: terminal_identificador '<' '-' tipo { $$ = NULL; node_free($1); };
+
+tipo
+    : TK_PR_INT   { $$ = NULL; } 
+    | TK_PR_FLOAT { $$ = NULL; }
+    ;
+corpoFuncao: blocoDeComandos { $$ = $1; };
 
 blocoDeComandos
     : '{' listaDeComandos '}' { $$ = $2; }
@@ -61,15 +83,17 @@ blocoDeComandos
     ;
 
 listaDeComandos
-    : listaDeComandos comando { if ($1 == NULL) {
-                                    $$ = $2;
-                                } else if ($2 == NULL) {
-                                    $$ = $1;
-                                } else {
-                                    node_append($1, $2); 
-                                    $$ = $1; 
-                                }
-                              }
+    : listaDeComandos comando 
+        { 
+            if ($1 == NULL) {
+                $$ = $2;
+            } else if ($2 == NULL) {
+                $$ = $1;
+            } else {
+                node_append($1, $2); 
+                $$ = $1; 
+            }
+        }
     | comando  { $$ = $1; }
     ;
 
@@ -78,21 +102,37 @@ comando
     ;
 
 comandoSimples
-    : declaracaoVariavel  { $$ = NULL; } // ToDo
-    | blocoDeComandos     { $$ = $1; node_print($$, 0); printf("--------\n"); }
-    | atribuicao          { $$ = $1; node_print($$, 0); printf("--------\n"); }
-    | chamadaFuncao       { $$ = $1; node_print($$, 0); printf("--------\n"); }
-    | retorno             { $$ = $1; node_print($$, 0); printf("--------\n"); }
-    | blocoIf             { $$ = NULL; } // ToDo
-    | blocoWhile          { $$ = $1; node_print($$, 0); printf("--------\n"); }
+    : declaracaoVariavel  { $$ = $1; }
+    | blocoDeComandos     { $$ = $1; }
+    | atribuicao          { $$ = $1; }
+    | chamadaFuncao       { $$ = $1; }
+    | retorno             { $$ = $1; }
+    | blocoIf             { $$ = $1; }
+    | blocoWhile          { $$ = $1; }
     ;
 
-declaracaoVariavel: tipo listaDeIdentificadores;
-listaDeIdentificadores: listaDeIdentificadores ',' identificador | identificador;
+declaracaoVariavel: tipo listaDeIdentificadores { $$ = $2; };
+listaDeIdentificadores
+    : listaDeIdentificadores ',' identificador 
+        {
+            if ($1 == NULL && $3 == NULL) {
+                $$ = NULL;
+            } else if ($1 == NULL && $3 != NULL) {
+                $$ = $3;
+            } else if ($1 != NULL && $3 == NULL) {
+                $$ = $1;
+            } else {
+                node_append($1, $3);
+                $$ = $1;
+            }
+        }
+    | identificador { $$ = $1; }
+    ;
+
 identificador
-    : terminal_identificador 
-    | terminal_identificador TK_OC_LE terminal_lit_float 
-    | terminal_identificador TK_OC_LE terminal_lit_int
+    : terminal_identificador  { $$ = NULL; node_free($1); } // Does not generate AST
+    | terminal_identificador TK_OC_LE terminal_lit_float { $$ = binary_op(NODE_VAR_INIT, "<=", $1, $3); }
+    | terminal_identificador TK_OC_LE terminal_lit_int   { $$ = binary_op(NODE_VAR_INIT, "<=", $1, $3); }
     ;
 
 atribuicao 
@@ -103,9 +143,11 @@ chamadaFuncao
     : terminal_identificador '(' listaDeArgumentos ')' 
         { 
             char *dest = malloc(strlen("call ") + strlen($1->label) + 1); 
-            strcat(dest, "call "); 
+            strcpy(dest, "call ");
             strcat(dest, $1->label); 
             $$ = node_create(NODE_FUNC_CALL, dest);
+            free(dest);
+            node_free($1);
             node_add_child($$, $3);
         }
     ;
@@ -125,11 +167,19 @@ retorno
 
 blocoIf
     : TK_PR_IF '(' expressao ')' blocoDeComandos blocoElse 
+        { 
+            $$ = node_create(NODE_IF, "if"); 
+            node_add_child($$, $3); 
+            if ($5 != NULL)
+                node_add_child($$, $5); 
+            if ($6 != NULL)
+                node_add_child($$, $6); 
+        }
     ;
 
 blocoElse
-    : TK_PR_ELSE blocoDeComandos
-    | %empty
+    : TK_PR_ELSE blocoDeComandos { $$ = $2; }
+    | %empty { $$ = NULL; }
     ;
 
 blocoWhile
@@ -194,15 +244,15 @@ expressao0
     ;
 
 terminal_identificador
-    : TK_IDENTIFICADOR  { $$ = node_create(NODE_IDENTIFIER, $1->value); }
+    : TK_IDENTIFICADOR  { $$ = node_create(NODE_IDENTIFIER, $1->value); lexical_value_free($1); }
     ;
 
 terminal_lit_float
-    : TK_LIT_FLOAT  { $$ = node_create(NODE_FLOAT_LITERAL, $1->value); }
+    : TK_LIT_FLOAT  { $$ = node_create(NODE_FLOAT_LITERAL, $1->value); lexical_value_free($1); }
     ;
 
 terminal_lit_int
-    : TK_LIT_INT  { $$ = node_create(NODE_INT_LITERAL, $1->value); }
+    : TK_LIT_INT  { $$ = node_create(NODE_INT_LITERAL, $1->value); lexical_value_free($1); }
     ;
 
 %%

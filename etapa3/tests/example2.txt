@@ -1,6 +1,7 @@
 funcao1 = param1 <- int | param2 <- float > int { // Função
-    int a, b, c<=2;           // Declaracao de Variavel
+    int a, c<=2, b, d <= 4;           // Declaracao de Variavel
     float d <= 1.1, e;
+    int f, g;
 
     if (expr + !(5 - 4 % a > - d & e | 2.4)) {
         a = b * c;
@@ -14,7 +15,7 @@ funcao1 = param1 <- int | param2 <- float > int { // Função
     };
 
     while (expr) {
-        funcao4(expr);
+        funcao4(expr * 2);
     };
     
     {
@@ -22,5 +23,13 @@ funcao1 = param1 <- int | param2 <- float > int { // Função
             a = 2;
         };
     };
+    {};
+    {};
+    a = 1;
     return expr;
+}
+
+funcao2 = > int {
+    funcao1(1, 2.2);
+    return 0;
 }

@@ -32,9 +32,9 @@ return return TK_PR_RETURN;
 
 [!\*/+\-%<>(){}\=,;] { return yytext[0]; }
 
-[a-z_][a-z0-9_]* { yylval.lexical_value = lexical_value(TYPE_IDENTIFIER, yytext); return TK_IDENTIFICADOR;}
-[0-9]+ { yylval.lexical_value = lexical_value(TYPE_LIT_INT, yytext); return TK_LIT_INT; }
-[0-9]*"."[0-9]+ { yylval.lexical_value = lexical_value(TYPE_LIT_FLOAT, yytext); return TK_LIT_FLOAT; }
+[a-z_][a-z0-9_]* { yylval.lexical_value = lexical_value_create(TYPE_IDENTIFIER, yytext); return TK_IDENTIFICADOR;}
+[0-9]+ { yylval.lexical_value = lexical_value_create(TYPE_LIT_INT, yytext); return TK_LIT_INT; }
+[0-9]*"."[0-9]+ { yylval.lexical_value = lexical_value_create(TYPE_LIT_FLOAT, yytext); return TK_LIT_FLOAT; }
 
 [[:blank:]]
 "\n"
@@ -47,11 +47,4 @@ int get_line_number(void) {
     return yylineno;
 }
 
-struct lexical_value_t *lexical_value(lexical_type_t type, char* label) {
-    struct lexical_value_t *lexVal = malloc(sizeof(struct lexical_value_t));
-    lexVal->lineNumber=get_line_number();
-    lexVal->type = type;
-    lexVal->value = strdup(label);
-    return lexVal;
-}
 
