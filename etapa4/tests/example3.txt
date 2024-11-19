@@ -1,0 +1,4 @@
+fatorial = a <- int > int {}
+fibonacci = a <- int | b <- int > int {}
+soma = num1 <- float | num2 <- float > float {}
+random = > int {}
