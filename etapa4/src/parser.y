@@ -60,7 +60,7 @@ struct node_t *binary_op(node_type_t type, char* label, struct node_t *left, str
 %% 
 
 empilha_tabela: %empty { scope_stack = enter_scope(scope_stack); }
-desempilha_tabela: %empty { scope_stack = exit_scope(scope_stack); }
+desempilha_tabela: %empty { print_table(scope_stack); scope_stack = exit_scope(scope_stack); }
 
 programa
     : empilha_tabela listaDeFuncoes { $$ = $2; arvore = (void*) $2; print_table(scope_stack); }
@@ -75,30 +75,32 @@ listaDeFuncoes
 funcao: empilha_tabela cabecalhoFuncao corpoFuncao desempilha_tabela { $$ = $2; node_add_child($$, $3); };
 
 cabecalhoFuncao
-    : terminal_identificador '=' listaDeParametros '>' tipo {
-        declare_symbol(
-            scope_stack->next, 
-            create_symbol(
-                $1->label, $1->lexical_value->lineNumber, 
-                SYMBOL_FUNCTION, data_type
-            )
-        );
-        //print_table(scope_stack);
-        $$ = node_create(NODE_FUNC, $1->label); 
-        node_free($1);
-    }
-    | terminal_identificador '=' '>' tipo { 
-        declare_symbol(
-            scope_stack->next, 
-            create_symbol(
-                $1->label, $1->lexical_value->lineNumber, 
-                SYMBOL_FUNCTION, data_type
-            )
-        ); 
+    : terminal_identificador '=' listaDeParametros '>' tipo 
+        {
+            declare_symbol(
+                scope_stack->next, 
+                create_symbol(
+                    $1->label, $1->lexical_value->lineNumber, 
+                    SYMBOL_FUNCTION, data_type
+                )
+            );
+            //print_table(scope_stack);
+            $$ = node_create(NODE_FUNC, $1->label); 
+            node_free($1);
+        }
+    | terminal_identificador '=' '>' tipo 
+        { 
+            declare_symbol(
+                scope_stack->next, 
+                create_symbol(
+                    $1->label, $1->lexical_value->lineNumber, 
+                    SYMBOL_FUNCTION, data_type
+                )
+            ); 
 
-        $$ = node_create(NODE_FUNC, $1->label); 
-        node_free($1);
-    }
+            $$ = node_create(NODE_FUNC, $1->label); 
+            node_free($1);
+        }
     ;
 
 listaDeParametros
@@ -107,18 +109,19 @@ listaDeParametros
     ;
 
 parametro
-    : terminal_identificador '<' '-' tipo { 
-        declare_symbol(
-            scope_stack, 
-            create_symbol(
-                $1->label, $1->lexical_value->lineNumber, 
-                SYMBOL_VARIABLE, data_type
-            )
-        );
+    : terminal_identificador '<' '-' tipo 
+        { 
+            declare_symbol(
+                scope_stack, 
+                create_symbol(
+                    $1->label, $1->lexical_value->lineNumber, 
+                    SYMBOL_VARIABLE, data_type
+                )
+            );
 
-        $$ = NULL;
-        node_free($1);
-    }
+            $$ = NULL;
+            node_free($1);
+        }
     ;
 
 tipo
@@ -126,11 +129,16 @@ tipo
     | TK_PR_FLOAT { $$ = NULL; data_type = DATA_FLOAT; }
     ;
 
-corpoFuncao: blocoDeComandos { $$ = $1; };
-
-blocoDeComandos
+corpoFuncao     
     : '{' listaDeComandos '}' { $$ = $2; }
     | '{' '}'                 { $$ = NULL; }
+    ;
+
+blocoDeComandos
+    : '{' empilha_tabela listaDeComandos desempilha_tabela '}'
+        { $$ = $3; }
+    | '{' '}'
+        { $$ = NULL; }
     ;
 
 listaDeComandos
@@ -159,9 +167,41 @@ listaDeIdentificadores
     ;
 
 identificador
-    : terminal_identificador { $$ = NULL; node_free($1); }
-    | terminal_identificador TK_OC_LE terminal_lit_float { $$ = binary_op(NODE_VAR_INIT, "<=", $1, $3); }
-    | terminal_identificador TK_OC_LE terminal_lit_int { $$ = binary_op(NODE_VAR_INIT, "<=", $1, $3); }
+    : terminal_identificador 
+        { 
+            declare_symbol(
+                scope_stack, 
+                create_symbol(
+                    $1->label, $1->lexical_value->lineNumber, 
+                    SYMBOL_VARIABLE, data_type
+                )
+            );
+
+            $$ = NULL; 
+            node_free($1); 
+        }
+    | terminal_identificador TK_OC_LE terminal_lit_float 
+        { 
+            declare_symbol(
+                scope_stack, 
+                create_symbol(
+                    $1->label, $1->lexical_value->lineNumber, 
+                    SYMBOL_VARIABLE, data_type
+                )
+            );
+            $$ = binary_op(NODE_VAR_INIT, "<=", $1, $3); 
+        }
+    | terminal_identificador TK_OC_LE terminal_lit_int 
+        { 
+            declare_symbol(
+                scope_stack, 
+                create_symbol(
+                    $1->label, $1->lexical_value->lineNumber, 
+                    SYMBOL_VARIABLE, data_type
+                )
+            );
+            $$ = binary_op(NODE_VAR_INIT, "<=", $1, $3); 
+        }
     ;
 
 atribuicao 

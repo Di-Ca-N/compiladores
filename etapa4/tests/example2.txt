@@ -5,6 +5,12 @@ funcao1 = param1 <- int | param2 <- float > int { // Função
     expr2 = a & b | c;
     expr3 = a | b & c;
 
+    a = 1;
+
+    {
+        a = 1;
+    };
+
     if (expr + !(5 - 4 % a > - d & e | 2.4)) {
         a = b * c;
     };
