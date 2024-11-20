@@ -14,6 +14,7 @@ struct node_t *node_create(node_type_t type, char *label) {
     struct node_t *node = malloc(sizeof(struct node_t));
     node->type = type;
     node->label = strdup(label);
+    node->lexical_value = NULL;
     node->nChildren = 0;
     node->children = NULL;
     node->next = NULL;
@@ -44,14 +45,13 @@ void node_print(struct node_t *node, int level) {
     node_print(node->next, level + 1);
 }
 
-void node_append(struct node_t *first, struct node_t *new) {
+struct node_t *node_append(struct node_t *first, struct node_t *new) {
     if (new == NULL) {
-        return;
+        return first;
     }
 
     if (first == NULL && new != NULL) {
-        first = new;
-        return;
+        return new;
     }
 
     struct node_t *p = first;
@@ -60,12 +60,18 @@ void node_append(struct node_t *first, struct node_t *new) {
         p = p->next;
     }
     p->next = new;
+    return first;
 }
 
 void node_free(struct node_t *node) {
     if (node == NULL) {
         return;
     }
+
+    if (node->lexical_value) {
+        free(node->lexical_value);
+    }
+
     for (int i = 0; i < node->nChildren; i++) {
         node_free(node->children[i]);
     }

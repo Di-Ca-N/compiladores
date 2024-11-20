@@ -53,11 +53,11 @@ struct symbol_t *find_symbol(struct symbol_table_t *table, char *key) {
     return find_symbol(table->next, key);
 }
 
-void print_table(struct symbol_table_t *table) {
+void print_table_inner(struct symbol_table_t *table, int depth) {
     if (table == NULL) return;
 
-    printf("---------------------------------------\n");
-    printf("Key\tLine #\tType\tData Type\n");
+    printf("-- depth %02d -------------------------------\n", depth);
+    printf("%-15s| %-6s | %-5s | %-9s\n", "Key", "Line #", "Type", "Data Type");
 
     for (int i = 0; i < table->num_entries; i++) {
         struct symbol_t *symbol = table->entries[i];
@@ -65,9 +65,16 @@ void print_table(struct symbol_table_t *table) {
         char *type_str = (symbol->type == SYMBOL_VARIABLE) ? "var" : "func";
         char *data_type_str = (symbol->data_type == DATA_INT) ? "int" : "float";
 
-        printf("%s\t%d\t%s\t%s\n", symbol->label, symbol->line_number, type_str, data_type_str);
+        printf("%-15s| %-6d | %-5s | %-9s\n", symbol->label, symbol->line_number, type_str, data_type_str);
     }
 
-    printf("---------------------------------------\n");
-    print_table(table->next);
+    printf("-------------------------------------------\n");
+    print_table_inner(table->next, depth + 1);
 }
+
+void print_table(struct symbol_table_t *table) {
+    printf("=============================\n");
+    print_table_inner(table, 0);
+    printf("=============================\n");
+}
+

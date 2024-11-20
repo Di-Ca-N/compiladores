@@ -37,6 +37,7 @@ struct node_t {
     node_type_t type;
     int nChildren;
     char *label;
+    struct lexical_value_t *lexical_value;
     struct node_t **children;
     struct node_t *next;
 };
@@ -45,7 +46,9 @@ struct node_t {
 struct node_t *node_create(node_type_t type, char *label);
 void node_add_child(struct node_t *parent, struct node_t *child);
 void node_print(struct node_t *node, int level);
-void node_append(struct node_t *first, struct node_t *new);
+// Append the tree pointed by new to the list pointed by first using the "next" pointers.
+// Return a pointer to the top node
+struct node_t *node_append(struct node_t *first, struct node_t *new);
 void node_free(struct node_t *node);
 struct lexical_value_t *lexical_value_create(lexical_type_t type, char* label);
 void lexical_value_free(struct lexical_value_t *lex_val);

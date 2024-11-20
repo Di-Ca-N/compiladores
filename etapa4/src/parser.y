@@ -11,13 +11,20 @@ Grupo:
 %{
 #include <stdio.h>
 #include <string.h>
-#include <tree.h>
-int yylex(void);
-void yyerror (char const *mensagem);
+#include "tree.h"
+#include "table.h"
+
+// Global functions and variables defined on other files
 extern int get_line_number();
 extern void* arvore;
+extern struct symbol_table_t *scope_stack;
+
+symbol_data_type data_type;
+
+// Prototype of helper functions on this file
+int yylex(void);
+void yyerror (char const *mensagem);
 struct node_t *binary_op(node_type_t type, char* label, struct node_t *left, struct node_t *right);
-struct node_t *list_append(struct node_t *head, struct node_t *item);
 %}
 
 %define parse.error verbose 
@@ -49,36 +56,74 @@ struct node_t *list_append(struct node_t *head, struct node_t *item);
 %type<ast_node> identificador listaDeIdentificadores tipo corpoFuncao parametro listaDeParametros cabecalhoFuncao
 %type<ast_node> funcao listaDeFuncoes programa
 
+%start programa
 %% 
+
+empilha_tabela: %empty { scope_stack = enter_scope(scope_stack); }
+desempilha_tabela: %empty { scope_stack = exit_scope(scope_stack); }
+
 programa
-    : listaDeFuncoes { $$ = $1; arvore = (void*) $1; }
+    : empilha_tabela listaDeFuncoes { $$ = $2; arvore = (void*) $2; print_table(scope_stack); }
     | %empty { $$ = NULL; }
     ;
 
 listaDeFuncoes
-    : listaDeFuncoes funcao { $$ = list_append($1, $2); } 
+    : listaDeFuncoes funcao { $$ = node_append($1, $2); } 
     | funcao { $$ = $1; }
     ;
 
-funcao: cabecalhoFuncao corpoFuncao { $$ = $1; node_add_child($$, $2); };
+funcao: empilha_tabela cabecalhoFuncao corpoFuncao desempilha_tabela { $$ = $2; node_add_child($$, $3); };
 
 cabecalhoFuncao
-    : terminal_identificador '=' listaDeParametros '>' tipo { $$ = node_create(NODE_FUNC, $1->label); node_free($1); }
-    | terminal_identificador '=' '>' tipo { $$ = node_create(NODE_FUNC, $1->label); node_free($1); }
+    : terminal_identificador '=' listaDeParametros '>' tipo {
+        declare_symbol(
+            scope_stack->next, 
+            create_symbol(
+                $1->label, $1->lexical_value->lineNumber, 
+                SYMBOL_FUNCTION, data_type
+            )
+        );
+        //print_table(scope_stack);
+        $$ = node_create(NODE_FUNC, $1->label); 
+        node_free($1);
+    }
+    | terminal_identificador '=' '>' tipo { 
+        declare_symbol(
+            scope_stack->next, 
+            create_symbol(
+                $1->label, $1->lexical_value->lineNumber, 
+                SYMBOL_FUNCTION, data_type
+            )
+        ); 
+
+        $$ = node_create(NODE_FUNC, $1->label); 
+        node_free($1);
+    }
     ;
 
 listaDeParametros
-    : listaDeParametros TK_OC_OR parametro { $$ = list_append($1, $3); } 
+    : listaDeParametros TK_OC_OR parametro { $$ = node_append($1, $3); } 
     | parametro { $$ = $1; }
     ;
 
 parametro
-    : terminal_identificador '<' '-' tipo { $$ = NULL; node_free($1); }
+    : terminal_identificador '<' '-' tipo { 
+        declare_symbol(
+            scope_stack, 
+            create_symbol(
+                $1->label, $1->lexical_value->lineNumber, 
+                SYMBOL_VARIABLE, data_type
+            )
+        );
+
+        $$ = NULL;
+        node_free($1);
+    }
     ;
 
 tipo
-    : TK_PR_INT   { $$ = NULL; }
-    | TK_PR_FLOAT { $$ = NULL; }
+    : TK_PR_INT   { $$ = NULL; data_type = DATA_INT; }
+    | TK_PR_FLOAT { $$ = NULL; data_type = DATA_FLOAT; }
     ;
 
 corpoFuncao: blocoDeComandos { $$ = $1; };
@@ -89,7 +134,7 @@ blocoDeComandos
     ;
 
 listaDeComandos
-    : listaDeComandos comando { $$ = list_append($1, $2); }
+    : listaDeComandos comando { $$ = node_append($1, $2); }
     | comando  { $$ = $1; }
     ;
 
@@ -109,7 +154,7 @@ comandoSimples
 
 declaracaoVariavel: tipo listaDeIdentificadores { $$ = $2; };
 listaDeIdentificadores
-    : listaDeIdentificadores ',' identificador { $$ = list_append($1, $3); }
+    : listaDeIdentificadores ',' identificador { $$ = node_append($1, $3); }
     | identificador { $$ = $1; }
     ;
 
@@ -137,7 +182,7 @@ chamadaFuncao
     ;
 
 listaDeArgumentos
-    : listaDeArgumentos ',' argumento { node_append($1, $3); $$ = $1; }
+    : listaDeArgumentos ',' argumento { $$ = node_append($1, $3); }
     | argumento                       { $$ = $1; }
     ;
 
@@ -226,7 +271,7 @@ expressao0
     ;
 
 terminal_identificador
-    : TK_IDENTIFICADOR  { $$ = node_create(NODE_IDENTIFIER, $1->value); lexical_value_free($1); }
+    : TK_IDENTIFICADOR  { $$ = node_create(NODE_IDENTIFIER, $1->value); $$->lexical_value = $1; }
     ;
 
 terminal_lit_float
@@ -238,7 +283,7 @@ terminal_lit_int
     ;
 
 %%
-void yyerror (char const *mensagem) {
+void yyerror(char const *mensagem) {
     fprintf(stderr, "Error at line %d: %s\n", get_line_number(), mensagem);
 }
 
@@ -247,17 +292,4 @@ struct node_t *binary_op(node_type_t type, char* label, struct node_t *left, str
     node_add_child(root, left); 
     node_add_child(root, right);
     return root;  
-}
-
-struct node_t *list_append(struct node_t *head, struct node_t *item) {
-    if (head == NULL && item == NULL) {
-        return NULL;
-    } else if (head == NULL && item != NULL) {
-        return item;
-    } else if (head != NULL && item == NULL) {
-        return head;
-    } else {
-        node_append(head, item);
-        return head;
-    }
 }
