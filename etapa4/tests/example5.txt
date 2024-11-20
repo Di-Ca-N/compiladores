@@ -12,6 +12,6 @@ func1 = param1 <- int | param2 <- float > int {
         } else {
             float g <= 3.2;
             e = g - 1;
-        }
+        };
     };
 }

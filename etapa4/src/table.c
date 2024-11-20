@@ -12,9 +12,15 @@ struct symbol_t *create_symbol(char *label, int line_number, symbol_type type, s
     return symbol;
 }
 
+void free_symbol(struct symbol_t *symbol) {
+    free(symbol->label);
+    free(symbol);
+}
+
 struct symbol_table_t *enter_scope(struct symbol_table_t *table) {
     struct symbol_table_t *top = (struct symbol_table_t*) malloc(sizeof(struct symbol_table_t));
     top->num_entries = 0;
+    top->entries = NULL;
     top->next = table;
     return top;
 }
@@ -24,9 +30,13 @@ struct symbol_table_t *exit_scope(struct symbol_table_t *table) {
 
     struct symbol_table_t *aux = table->next;
     for (int i = 0; i < table->num_entries; i++) {
-        free(table->entries[i]);
+        free_symbol(table->entries[i]);
     }
-    free(table->entries);
+
+    if (table->entries != NULL) {
+        free(table->entries);
+    }
+
     free(table);
 
     return aux;

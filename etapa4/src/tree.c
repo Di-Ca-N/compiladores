@@ -69,7 +69,7 @@ void node_free(struct node_t *node) {
     }
 
     if (node->lexical_value) {
-        free(node->lexical_value);
+        lexical_value_free(node->lexical_value);
     }
 
     for (int i = 0; i < node->nChildren; i++) {

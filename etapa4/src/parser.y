@@ -63,7 +63,7 @@ empilha_tabela: %empty { scope_stack = enter_scope(scope_stack); }
 desempilha_tabela: %empty { print_table(scope_stack); scope_stack = exit_scope(scope_stack); }
 
 programa
-    : empilha_tabela listaDeFuncoes { $$ = $2; arvore = (void*) $2; print_table(scope_stack); }
+    : empilha_tabela listaDeFuncoes { $$ = $2; arvore = (void*) $2; print_table(scope_stack); exit_scope(scope_stack); }
     | %empty { $$ = NULL; }
     ;
 
