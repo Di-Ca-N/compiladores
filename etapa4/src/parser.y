@@ -63,8 +63,10 @@ int checked_declaration(struct node_t *lexical_node, struct symbol_table_t *scop
 %start programa
 %% 
 
+/* Helper non-terminals for semantic analysis */
 empilha_tabela: %empty { scope_stack = enter_scope(scope_stack); }
 desempilha_tabela: %empty { scope_stack = exit_scope(scope_stack); }
+
 
 programa
     : empilha_tabela listaDeFuncoes { $$ = $2; arvore = (void*) $2; exit_scope(scope_stack); }
@@ -83,7 +85,7 @@ cabecalhoFuncao
         {
             int err = checked_declaration(
                 $1, scope_stack->next, SYMBOL_FUNCTION, 
-                "Error on declaring function '%s > %s' on line %d: Found previous declaration '%s > %s' on line %d\n"
+                "Error: Redeclaration of function '%s > %s' on line %d: Found previous declaration '%s > %s' on line %d.\n"
             );
             if (err) exit(ERR_DECLARED);
 
@@ -103,7 +105,7 @@ parametro
         { 
             int err = checked_declaration(
                 $1, scope_stack, SYMBOL_VARIABLE, 
-                "Error on declaring parameter '%s <- %s' on line %d: Found previous declaration '%s <- %s' on line %d\n"
+                "Error: Redeclaration of parameter '%s <- %s' on line %d: Found previous declaration '%s <- %s' on line %d.\n"
             );
             if (err) exit(err);
 
@@ -191,7 +193,10 @@ atribuicao
         { 
             struct symbol_t *symbol = find_symbol(scope_stack, $1->label);
             if (symbol == NULL) {
-                printf("Error: Assignment to undeclared variable '%s' on line %d.\n", $1->label, $1->lexical_value->lineNumber);
+                printf(
+                    "Error: Assignment to undeclared variable '%s' on line %d.\n", 
+                    $1->label, $1->lexical_value->lineNumber
+                );
                 exit(ERR_UNDECLARED);
             }
             $$ = binary_op(NODE_ASSIGN, "=", $1, $3); 
@@ -203,7 +208,10 @@ chamadaFuncao
         { 
             struct symbol_t *symbol = find_symbol(scope_stack, $1->label);
             if (symbol == NULL) {
-                printf("Error: Call to undeclared function '%s' on line %d.\n", $1->label, $1->lexical_value->lineNumber);
+                printf(
+                    "Error: Call to undeclared function '%s' on line %d.\n", 
+                    $1->label, $1->lexical_value->lineNumber
+                );
                 exit(ERR_UNDECLARED);
             }
     
@@ -227,7 +235,11 @@ argumento
     ;
 
 retorno
-    : TK_PR_RETURN expressao { $$ = node_create(NODE_RETURN, "return"); node_add_child($$, $2); }
+    : TK_PR_RETURN expressao 
+        { 
+            $$ = node_create(NODE_RETURN, "return"); 
+            node_add_child($$, $2); 
+        }
     ;
 
 blocoIf
@@ -307,7 +319,10 @@ expressao0
         { 
             struct symbol_t *symbol = find_symbol(scope_stack, $1->label);
             if (symbol == NULL) {
-                printf("Error: Using undeclared symbol '%s' on line %d.\n", $1->label, $1->lexical_value->lineNumber);
+                printf(
+                    "Error: Using undeclared variable '%s' on line %d.\n", 
+                    $1->label, $1->lexical_value->lineNumber
+                );
                 exit(ERR_UNDECLARED);
             }
 
@@ -316,15 +331,27 @@ expressao0
     ;
 
 terminal_identificador
-    : TK_IDENTIFICADOR  { $$ = node_create(NODE_IDENTIFIER, $1->value); $$->lexical_value = $1; }
+    : TK_IDENTIFICADOR  
+        { 
+            $$ = node_create(NODE_IDENTIFIER, $1->value); 
+            $$->lexical_value = $1;
+        }
     ;
 
 terminal_lit_float
-    : TK_LIT_FLOAT  { $$ = node_create(NODE_FLOAT_LITERAL, $1->value); lexical_value_free($1); }
+    : TK_LIT_FLOAT 
+        { 
+            $$ = node_create(NODE_FLOAT_LITERAL, $1->value); 
+            $$->lexical_value = $1;
+        }
     ;
 
 terminal_lit_int
-    : TK_LIT_INT  { $$ = node_create(NODE_INT_LITERAL, $1->value); lexical_value_free($1); }
+    : TK_LIT_INT  
+        { 
+            $$ = node_create(NODE_INT_LITERAL, $1->value);
+            $$->lexical_value = $1;
+        }
     ;
 
 %%
