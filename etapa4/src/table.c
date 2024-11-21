@@ -3,7 +3,7 @@
 #include <string.h>
 #include <stdio.h>
 
-struct symbol_t *create_symbol(char *label, int line_number, symbol_type type, symbol_data_type data_type) {
+struct symbol_t *create_symbol(char *label, int line_number, symbol_type type, data_type_t data_type) {
     struct symbol_t *symbol = (struct symbol_t *) malloc(sizeof(struct symbol_t));
     symbol->label = strdup(label);
     symbol->line_number = line_number;
@@ -54,12 +54,25 @@ int declare_symbol(struct symbol_table_t *table, struct symbol_t *symbol) {
     return 0;
 }
 
-struct symbol_t *find_symbol(struct symbol_table_t *table, char *key) {
-    if (table == NULL) return NULL;
+struct symbol_t *find_symbol_on_scope(struct symbol_table_t *table, char *key) {
+    if (table == NULL) 
+        return NULL;
+
     for (int i = 0; i < table->num_entries; i++) {
         if (strcmp(table->entries[i]->label, key) == 0)
             return table->entries[i];
     }
+
+    return NULL;
+}
+
+struct symbol_t *find_symbol(struct symbol_table_t *table, char *key) {
+    if (table == NULL) return NULL;
+
+    struct symbol_t *symbol = find_symbol_on_scope(table, key);
+
+    if (symbol != NULL) 
+        return symbol;
     return find_symbol(table->next, key);
 }
 
@@ -73,7 +86,7 @@ void print_table_inner(struct symbol_table_t *table, int depth) {
         struct symbol_t *symbol = table->entries[i];
 
         char *type_str = (symbol->type == SYMBOL_VARIABLE) ? "var" : "func";
-        char *data_type_str = (symbol->data_type == DATA_INT) ? "int" : "float";
+        char *data_type_str = type_to_str(symbol->data_type);
 
         printf("%-15s| %-6d | %-5s | %-9s\n", symbol->label, symbol->line_number, type_str, data_type_str);
     }

@@ -11,20 +11,24 @@ Grupo:
 %{
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
+
 #include "tree.h"
 #include "table.h"
+#include "errors.h"
 
 // Global functions and variables defined on other files
 extern int get_line_number();
 extern void* arvore;
 extern struct symbol_table_t *scope_stack;
 
-symbol_data_type data_type;
+data_type_t data_type;
 
 // Prototype of helper functions on this file
 int yylex(void);
 void yyerror (char const *mensagem);
 struct node_t *binary_op(node_type_t type, char* label, struct node_t *left, struct node_t *right);
+int checked_declaration(struct node_t *lexical_node, struct symbol_table_t *scope, symbol_type type, char* errorMsg);
 %}
 
 %define parse.error verbose 
@@ -60,10 +64,10 @@ struct node_t *binary_op(node_type_t type, char* label, struct node_t *left, str
 %% 
 
 empilha_tabela: %empty { scope_stack = enter_scope(scope_stack); }
-desempilha_tabela: %empty { print_table(scope_stack); scope_stack = exit_scope(scope_stack); }
+desempilha_tabela: %empty { scope_stack = exit_scope(scope_stack); }
 
 programa
-    : empilha_tabela listaDeFuncoes { $$ = $2; arvore = (void*) $2; print_table(scope_stack); exit_scope(scope_stack); }
+    : empilha_tabela listaDeFuncoes { $$ = $2; arvore = (void*) $2; exit_scope(scope_stack); }
     | %empty { $$ = NULL; }
     ;
 
@@ -77,26 +81,11 @@ funcao: empilha_tabela cabecalhoFuncao corpoFuncao desempilha_tabela { $$ = $2; 
 cabecalhoFuncao
     : terminal_identificador '=' listaDeParametros '>' tipo 
         {
-            declare_symbol(
-                scope_stack->next, 
-                create_symbol(
-                    $1->label, $1->lexical_value->lineNumber, 
-                    SYMBOL_FUNCTION, data_type
-                )
+            int err = checked_declaration(
+                $1, scope_stack->next, SYMBOL_FUNCTION, 
+                "Error on declaring function '%s > %s' on line %d: Found previous declaration '%s > %s' on line %d\n"
             );
-            //print_table(scope_stack);
-            $$ = node_create(NODE_FUNC, $1->label); 
-            node_free($1);
-        }
-    | terminal_identificador '=' '>' tipo 
-        { 
-            declare_symbol(
-                scope_stack->next, 
-                create_symbol(
-                    $1->label, $1->lexical_value->lineNumber, 
-                    SYMBOL_FUNCTION, data_type
-                )
-            ); 
+            if (err) exit(ERR_DECLARED);
 
             $$ = node_create(NODE_FUNC, $1->label); 
             node_free($1);
@@ -106,18 +95,17 @@ cabecalhoFuncao
 listaDeParametros
     : listaDeParametros TK_OC_OR parametro { $$ = node_append($1, $3); } 
     | parametro { $$ = $1; }
+    | %empty    { $$ = NULL; }
     ;
 
 parametro
     : terminal_identificador '<' '-' tipo 
         { 
-            declare_symbol(
-                scope_stack, 
-                create_symbol(
-                    $1->label, $1->lexical_value->lineNumber, 
-                    SYMBOL_VARIABLE, data_type
-                )
+            int err = checked_declaration(
+                $1, scope_stack, SYMBOL_VARIABLE, 
+                "Error on declaring parameter '%s <- %s' on line %d: Found previous declaration '%s <- %s' on line %d\n"
             );
+            if (err) exit(err);
 
             $$ = NULL;
             node_free($1);
@@ -169,37 +157,31 @@ listaDeIdentificadores
 identificador
     : terminal_identificador 
         { 
-            declare_symbol(
-                scope_stack, 
-                create_symbol(
-                    $1->label, $1->lexical_value->lineNumber, 
-                    SYMBOL_VARIABLE, data_type
-                )
+            int err = checked_declaration(
+                $1, scope_stack, SYMBOL_VARIABLE, 
+                "Error on declaring variable '%s (%s)' on line %d: Found previous declaration '%s (%s)' on line %d\n"
             );
+            if (err) exit(err);
 
             $$ = NULL; 
             node_free($1); 
         }
     | terminal_identificador TK_OC_LE terminal_lit_float 
         { 
-            declare_symbol(
-                scope_stack, 
-                create_symbol(
-                    $1->label, $1->lexical_value->lineNumber, 
-                    SYMBOL_VARIABLE, data_type
-                )
+            int err = checked_declaration(
+                $1, scope_stack, SYMBOL_VARIABLE, 
+                "Error on declaring variable '%s (%s)' on line %d: Found previous declaration '%s (%s)' on line %d\n"
             );
+            if (err) exit(err);
             $$ = binary_op(NODE_VAR_INIT, "<=", $1, $3); 
         }
     | terminal_identificador TK_OC_LE terminal_lit_int 
         { 
-            declare_symbol(
-                scope_stack, 
-                create_symbol(
-                    $1->label, $1->lexical_value->lineNumber, 
-                    SYMBOL_VARIABLE, data_type
-                )
+            int err = checked_declaration(
+                $1, scope_stack, SYMBOL_VARIABLE, 
+                "Error on declaring variable '%s (%s)' on line %d: Found previous declaration '%s (%s)' on line %d\n"
             );
+            if (err) exit(err);
             $$ = binary_op(NODE_VAR_INIT, "<=", $1, $3); 
         }
     ;
@@ -332,4 +314,30 @@ struct node_t *binary_op(node_type_t type, char* label, struct node_t *left, str
     node_add_child(root, left); 
     node_add_child(root, right);
     return root;  
+}
+
+
+int checked_declaration(struct node_t *lexical_node, struct symbol_table_t *scope, symbol_type type, char* errorMsg) {
+    struct symbol_t *symbol = find_symbol_on_scope(scope, lexical_node->label);
+    if (symbol != NULL) {
+        printf(
+            errorMsg,
+            lexical_node->label,
+            type_to_str(data_type),
+            lexical_node->lexical_value->lineNumber,
+            symbol->label,
+            type_to_str(symbol->data_type),
+            symbol->line_number
+        );
+        return ERR_DECLARED;
+    }
+
+    declare_symbol(
+        scope, 
+        create_symbol(
+            lexical_node->label, lexical_node->lexical_value->lineNumber, 
+            type, data_type
+        )
+    );
+    return 0;
 }
