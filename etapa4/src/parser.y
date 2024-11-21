@@ -159,7 +159,7 @@ identificador
         { 
             int err = checked_declaration(
                 $1, scope_stack, SYMBOL_VARIABLE, 
-                "Error on declaring variable '%s (%s)' on line %d: Found previous declaration '%s (%s)' on line %d\n"
+                "Error: Redeclaration of variable '%s (%s)' on line %d: Found previous declaration '%s (%s)' on line %d.\n"
             );
             if (err) exit(err);
 
@@ -170,7 +170,7 @@ identificador
         { 
             int err = checked_declaration(
                 $1, scope_stack, SYMBOL_VARIABLE, 
-                "Error on declaring variable '%s (%s)' on line %d: Found previous declaration '%s (%s)' on line %d\n"
+                "Error: Redeclaration of variable '%s (%s)' on line %d. Found previous declaration '%s (%s)' on line %d.\n"
             );
             if (err) exit(err);
             $$ = binary_op(NODE_VAR_INIT, "<=", $1, $3); 
@@ -179,7 +179,7 @@ identificador
         { 
             int err = checked_declaration(
                 $1, scope_stack, SYMBOL_VARIABLE, 
-                "Error on declaring variable '%s (%s)' on line %d: Found previous declaration '%s (%s)' on line %d\n"
+                "Error: Redeclaration of variable '%s (%s)' on line %d. Found previous declaration '%s (%s)' on line %d.\n"
             );
             if (err) exit(err);
             $$ = binary_op(NODE_VAR_INIT, "<=", $1, $3); 
@@ -187,12 +187,26 @@ identificador
     ;
 
 atribuicao 
-    : terminal_identificador '=' expressao { $$ = binary_op(NODE_ASSIGN, "=", $1, $3); }
+    : terminal_identificador '=' expressao 
+        { 
+            struct symbol_t *symbol = find_symbol(scope_stack, $1->label);
+            if (symbol == NULL) {
+                printf("Error: Assignment to undeclared variable '%s' on line %d.\n", $1->label, $1->lexical_value->lineNumber);
+                exit(ERR_UNDECLARED);
+            }
+            $$ = binary_op(NODE_ASSIGN, "=", $1, $3); 
+        }
     ;
 
 chamadaFuncao
     : terminal_identificador '(' listaDeArgumentos ')' 
         { 
+            struct symbol_t *symbol = find_symbol(scope_stack, $1->label);
+            if (symbol == NULL) {
+                printf("Error: Call to undeclared function '%s' on line %d.\n", $1->label, $1->lexical_value->lineNumber);
+                exit(ERR_UNDECLARED);
+            }
+    
             char *dest = malloc(strlen("call ") + strlen($1->label) + 1); 
             strcpy(dest, "call ");
             strcat(dest, $1->label); 
@@ -286,10 +300,19 @@ expressao1
 
 expressao0
     : '(' expressao ')'      { $$ = $2; }
+    | chamadaFuncao          { $$ = $1; }
     | terminal_lit_float     { $$ = $1; }
     | terminal_lit_int       { $$ = $1; }
-    | terminal_identificador { $$ = $1; }
-    | chamadaFuncao          { $$ = $1; }
+    | terminal_identificador 
+        { 
+            struct symbol_t *symbol = find_symbol(scope_stack, $1->label);
+            if (symbol == NULL) {
+                printf("Error: Using undeclared symbol '%s' on line %d.\n", $1->label, $1->lexical_value->lineNumber);
+                exit(ERR_UNDECLARED);
+            }
+
+            $$ = $1; 
+        }
     ;
 
 terminal_identificador
@@ -315,7 +338,6 @@ struct node_t *binary_op(node_type_t type, char* label, struct node_t *left, str
     node_add_child(root, right);
     return root;  
 }
-
 
 int checked_declaration(struct node_t *lexical_node, struct symbol_table_t *scope, symbol_type type, char* errorMsg) {
     struct symbol_t *symbol = find_symbol_on_scope(scope, lexical_node->label);
