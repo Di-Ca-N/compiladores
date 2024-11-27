@@ -5,6 +5,7 @@ Grupo:
 */
 
 #pragma once
+#include "data_types.h"
 
 typedef enum {
     NODE_FUNC,
@@ -40,6 +41,7 @@ struct node_t {
     struct lexical_value_t *lexical_value;
     struct node_t **children;
     struct node_t *next;
+    data_type_t id_type;
 };
 
 

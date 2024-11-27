@@ -199,6 +199,11 @@ atribuicao
                 );
                 exit(ERR_UNDECLARED);
             }
+            if(symbol->type == SYMBOL_FUNCTION)
+            {
+                printf("Error: Function %s declared on line %d called as Variable on line %d.\n", $1->label, symbol->line_number, $1->lexical_value->lineNumber);
+                exit(ERR_FUNCTION);
+            } 
             $$ = binary_op(NODE_ASSIGN, "=", $1, $3); 
         }
     ;
@@ -206,6 +211,7 @@ atribuicao
 chamadaFuncao
     : terminal_identificador '(' listaDeArgumentos ')' 
         { 
+            
             struct symbol_t *symbol = find_symbol(scope_stack, $1->label);
             if (symbol == NULL) {
                 printf(
@@ -214,11 +220,16 @@ chamadaFuncao
                 );
                 exit(ERR_UNDECLARED);
             }
-    
+            if(symbol->type == SYMBOL_VARIABLE)
+            {
+                printf("Error: Variable %s declared on line %d called as Function on line %d.\n", $1->label, symbol->line_number, $1->lexical_value->lineNumber);
+                exit(ERR_VARIABLE);
+            }
             char *dest = malloc(strlen("call ") + strlen($1->label) + 1); 
             strcpy(dest, "call ");
             strcat(dest, $1->label); 
             $$ = node_create(NODE_FUNC_CALL, dest);
+            $$->id_type = symbol->data_type;
             node_add_child($$, $3);
             free(dest);
             node_free($1);
@@ -270,44 +281,44 @@ blocoWhile
 
 expressao
     : expressao6                     { $$ = $1; }
-    | expressao TK_OC_OR expressao6  { $$ = binary_op(NODE_EXPR, "|", $1, $3); }
+    | expressao TK_OC_OR expressao6  { $$ = binary_op(NODE_EXPR, "|", $1, $3); $$->id_type = data_type_infer($1->id_type, $3->id_type); }
     ;
 
 expressao6
     : expressao5                       { $$ = $1; }
-    | expressao6 TK_OC_AND expressao5  { $$ = binary_op(NODE_EXPR, "&", $1, $3); }
+    | expressao6 TK_OC_AND expressao5  { $$ = binary_op(NODE_EXPR, "&", $1, $3); $$->id_type = data_type_infer($1->id_type, $3->id_type); }
     ;
 
 expressao5
     : expressao4                      { $$ = $1; }
-    | expressao5 TK_OC_EQ expressao4  { $$ = binary_op(NODE_EXPR, "==", $1, $3); }
-    | expressao5 TK_OC_NE expressao4  { $$ = binary_op(NODE_EXPR, "!=", $1, $3); }
+    | expressao5 TK_OC_EQ expressao4  { $$ = binary_op(NODE_EXPR, "==", $1, $3); $$->id_type = DATA_INT; }
+    | expressao5 TK_OC_NE expressao4  { $$ = binary_op(NODE_EXPR, "!=", $1, $3); $$->id_type = DATA_INT; }
     ;
 
 expressao4
     : expressao3                      { $$ = $1; }
-    | expressao4 '<' expressao3       { $$ = binary_op(NODE_EXPR, "<", $1, $3); }
-    | expressao4 '>' expressao3       { $$ = binary_op(NODE_EXPR, ">", $1, $3); }
-    | expressao4 TK_OC_LE expressao3  { $$ = binary_op(NODE_EXPR, "<=", $1, $3); }
-    | expressao4 TK_OC_GE expressao3  { $$ = binary_op(NODE_EXPR, ">=", $1, $3); }
+    | expressao4 '<' expressao3       { $$ = binary_op(NODE_EXPR, "<", $1, $3); $$->id_type = DATA_INT; }
+    | expressao4 '>' expressao3       { $$ = binary_op(NODE_EXPR, ">", $1, $3); $$->id_type = DATA_INT; }
+    | expressao4 TK_OC_LE expressao3  { $$ = binary_op(NODE_EXPR, "<=", $1, $3); $$->id_type = DATA_INT; }
+    | expressao4 TK_OC_GE expressao3  { $$ = binary_op(NODE_EXPR, ">=", $1, $3); $$->id_type = DATA_INT; }
     ;
 
 expressao3
     : expressao2                 { $$ = $1; }
-    | expressao3 '+' expressao2  { $$ = binary_op(NODE_EXPR, "+", $1, $3); }
-    | expressao3 '-' expressao2  { $$ = binary_op(NODE_EXPR, "-", $1, $3); }
+    | expressao3 '+' expressao2  { $$ = binary_op(NODE_EXPR, "+", $1, $3); $$->id_type = data_type_infer($1->id_type, $3->id_type); }
+    | expressao3 '-' expressao2  { $$ = binary_op(NODE_EXPR, "-", $1, $3); $$->id_type = data_type_infer($1->id_type, $3->id_type); }
 
 expressao2
     : expressao1                 { $$ = $1; }
-    | expressao2 '*' expressao1  { $$ = binary_op(NODE_EXPR, "*", $1, $3); }
-    | expressao2 '/' expressao1  { $$ = binary_op(NODE_EXPR, "/", $1, $3); }
-    | expressao2 '%' expressao1  { $$ = binary_op(NODE_EXPR, "%", $1, $3); }
+    | expressao2 '*' expressao1  { $$ = binary_op(NODE_EXPR, "*", $1, $3); $$->id_type = data_type_infer($1->id_type, $3->id_type); }
+    | expressao2 '/' expressao1  { $$ = binary_op(NODE_EXPR, "/", $1, $3); $$->id_type = data_type_infer($1->id_type, $3->id_type); }
+    | expressao2 '%' expressao1  { $$ = binary_op(NODE_EXPR, "%", $1, $3); $$->id_type = data_type_infer($1->id_type, $3->id_type); }
     ;
 
 expressao1
     : expressao0      { $$ = $1; }
-    | '-' expressao1  { $$ = node_create(NODE_EXPR, "-"); node_add_child($$, $2); }
-    | '!' expressao1  { $$ = node_create(NODE_EXPR, "!"); node_add_child($$, $2); }
+    | '-' expressao1  { $$ = node_create(NODE_EXPR, "-"); node_add_child($$, $2); $$->id_type = $2->id_type; }
+    | '!' expressao1  { $$ = node_create(NODE_EXPR, "!"); node_add_child($$, $2); $$->id_type = $2->id_type; }
     ;
 
 expressao0
@@ -325,8 +336,13 @@ expressao0
                 );
                 exit(ERR_UNDECLARED);
             }
-
+            if(symbol->type == SYMBOL_FUNCTION)
+            {
+                printf("Error: Function %s declared on line %d called as Variable on line %d.\n", $1->label, symbol->line_number, $1->lexical_value->lineNumber);
+                exit(ERR_FUNCTION);
+            } 
             $$ = $1; 
+            $$->id_type = symbol->data_type;
         }
     ;
 
@@ -343,6 +359,7 @@ terminal_lit_float
         { 
             $$ = node_create(NODE_FLOAT_LITERAL, $1->value); 
             $$->lexical_value = $1;
+            $$->id_type = DATA_FLOAT;
         }
     ;
 
@@ -351,6 +368,7 @@ terminal_lit_int
         { 
             $$ = node_create(NODE_INT_LITERAL, $1->value);
             $$->lexical_value = $1;
+            $$->id_type = DATA_INT;
         }
     ;
 
