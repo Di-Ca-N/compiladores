@@ -6,6 +6,7 @@ Grupo:
 #pragma once
 
 typedef enum {
+    DATA_UNDEFINED,
     DATA_INT,
     DATA_FLOAT,
 } data_type_t;

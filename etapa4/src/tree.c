@@ -13,6 +13,7 @@ extern int get_line_number();
 struct node_t *node_create(node_type_t type, char *label) {
     struct node_t *node = malloc(sizeof(struct node_t));
     node->type = type;
+    node->id_type = DATA_UNDEFINED;
     node->label = strdup(label);
     node->lexical_value = NULL;
     node->nChildren = 0;
@@ -38,7 +39,7 @@ void node_print(struct node_t *node, int level) {
     for (int i = 0; i < level; i++) {
         printf("  ");
     }
-    printf("'%s' (%d)\n", node->label, node->type);
+    printf("'%s' (%d) type=%s\n", node->label, node->type, type_to_str(node->id_type));
     for (int i = 0; i < node->nChildren; i++) {
         node_print(node->children[i], level + 1);
     }

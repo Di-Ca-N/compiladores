@@ -2,6 +2,9 @@
 
 char *type_to_str(data_type_t type) {
     switch (type) {
+        case DATA_UNDEFINED:
+            return "undefined";
+
         case DATA_INT:
             return "int";
 
