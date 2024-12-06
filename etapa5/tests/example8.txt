@@ -1,0 +1,4 @@
+func1 = param1 <- int | param2 <- float > int {
+    int a;
+    float a;
+}

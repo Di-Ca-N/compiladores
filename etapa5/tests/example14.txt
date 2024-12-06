@@ -1,0 +1,7 @@
+factorial = param1 <- int > int {
+    if (param1 == 0) {
+        return 1;
+    };
+
+    return param1 * factorial(param1 - 1);
+}

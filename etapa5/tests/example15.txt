@@ -1,0 +1,5 @@
+test = param1 <- int > int {
+    int expr;
+    float a, d, e, f;
+    f = expr + !(5 - 4 % a > - d & e | 2.4);
+}
