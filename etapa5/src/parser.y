@@ -65,7 +65,7 @@ int checked_declaration(struct node_t *lexical_node, struct symbol_table_t *scop
 
 /* Helper non-terminals for semantic analysis */
 empilha_tabela: %empty { scope_stack = enter_scope(scope_stack); }
-desempilha_tabela: %empty { scope_stack = exit_scope(scope_stack); }
+desempilha_tabela: %empty { scope_stack = exit_scope(scope_stack); print_table(scope_stack); }
 
 
 programa
@@ -199,12 +199,13 @@ atribuicao
                 );
                 exit(ERR_UNDECLARED);
             }
-            if(symbol->type == SYMBOL_FUNCTION)
-            {
+            if(symbol->type == SYMBOL_FUNCTION) {
                 printf("Error: Function %s declared on line %d called as Variable on line %d.\n", $1->label, symbol->line_number, $1->lexical_value->lineNumber);
                 exit(ERR_FUNCTION);
-            } 
+            }
+
             $$ = binary_op(NODE_ASSIGN, "=", $1, $3); 
+            $$->id_type = $3->id_type; 
         }
     ;
 
@@ -229,7 +230,6 @@ chamadaFuncao
             strcpy(dest, "call ");
             strcat(dest, $1->label); 
             $$ = node_create(NODE_FUNC_CALL, dest);
-            $$->id_type = symbol->data_type;
             node_add_child($$, $3);
             free(dest);
             node_free($1);

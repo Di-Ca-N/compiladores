@@ -19,9 +19,12 @@ struct symbol_t {
     int line_number;
     symbol_type type;
     data_type_t data_type;
+    int size;
+    int offset;
 };
 
 struct symbol_table_t {
+    int base_offset;
     int num_entries;
     struct symbol_t **entries;
     struct  symbol_table_t *next;

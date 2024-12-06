@@ -12,5 +12,5 @@ typedef enum {
 } data_type_t;
 
 data_type_t data_type_infer(data_type_t first, data_type_t second);
-
 char *type_to_str(data_type_t type);
+int get_data_type_size(data_type_t type);
