@@ -27,8 +27,9 @@ data_type_t data_type;
 // Prototype of helper functions on this file
 int yylex(void);
 void yyerror (char const *mensagem);
-struct node_t *binary_op(node_type_t type, char* label, struct node_t *left, struct node_t *right);
-int checked_declaration(struct node_t *lexical_node, struct symbol_table_t *scope, symbol_type type, char* errorMsg);
+struct node_t *ast_binary_op(node_type_t type, char* label, struct node_t *left, struct node_t *right);
+void code_gen_binary_op(char* mnemonic, struct node_t *root, struct node_t *left, struct node_t *right);
+int checked_declaration(struct node_t *lexical_node, struct symbol_table_t *scope, symbol_type type);
 %}
 
 %define parse.error verbose 
@@ -83,10 +84,7 @@ funcao: empilha_tabela cabecalhoFuncao corpoFuncao desempilha_tabela { $$ = $2; 
 cabecalhoFuncao
     : terminal_identificador '=' listaDeParametros '>' tipo 
         {
-            int err = checked_declaration(
-                $1, scope_stack->next, SYMBOL_FUNCTION, 
-                "Error: Redeclaration of function '%s > %s' on line %d: Found previous declaration '%s > %s' on line %d.\n"
-            );
+            int err = checked_declaration($1, scope_stack->next, SYMBOL_FUNCTION);
             if (err) exit(ERR_DECLARED);
 
             $$ = node_create(NODE_FUNC, $1->label); 
@@ -103,10 +101,7 @@ listaDeParametros
 parametro
     : terminal_identificador '<' '-' tipo 
         { 
-            int err = checked_declaration(
-                $1, scope_stack, SYMBOL_VARIABLE, 
-                "Error: Redeclaration of parameter '%s <- %s' on line %d: Found previous declaration '%s <- %s' on line %d.\n"
-            );
+            int err = checked_declaration($1, scope_stack, SYMBOL_VARIABLE);
             if (err) exit(err);
 
             $$ = NULL;
@@ -159,10 +154,7 @@ listaDeIdentificadores
 identificador
     : terminal_identificador 
         { 
-            int err = checked_declaration(
-                $1, scope_stack, SYMBOL_VARIABLE, 
-                "Error: Redeclaration of variable '%s (%s)' on line %d: Found previous declaration '%s (%s)' on line %d.\n"
-            );
+            int err = checked_declaration($1, scope_stack, SYMBOL_VARIABLE);
             if (err) exit(err);
 
             $$ = NULL; 
@@ -170,21 +162,15 @@ identificador
         }
     | terminal_identificador TK_OC_LE terminal_lit_float 
         { 
-            int err = checked_declaration(
-                $1, scope_stack, SYMBOL_VARIABLE, 
-                "Error: Redeclaration of variable '%s (%s)' on line %d. Found previous declaration '%s (%s)' on line %d.\n"
-            );
+            int err = checked_declaration($1, scope_stack, SYMBOL_VARIABLE);
             if (err) exit(err);
-            $$ = binary_op(NODE_VAR_INIT, "<=", $1, $3); 
+            $$ = ast_binary_op(NODE_VAR_INIT, "<=", $1, $3); 
         }
     | terminal_identificador TK_OC_LE terminal_lit_int 
         { 
-            int err = checked_declaration(
-                $1, scope_stack, SYMBOL_VARIABLE, 
-                "Error: Redeclaration of variable '%s (%s)' on line %d. Found previous declaration '%s (%s)' on line %d.\n"
-            );
+            int err = checked_declaration($1, scope_stack, SYMBOL_VARIABLE);
             if (err) exit(err);
-            $$ = binary_op(NODE_VAR_INIT, "<=", $1, $3); 
+            $$ = ast_binary_op(NODE_VAR_INIT, "<=", $1, $3); 
         }
     ;
 
@@ -204,8 +190,10 @@ atribuicao
                 exit(ERR_FUNCTION);
             }
 
-            $$ = binary_op(NODE_ASSIGN, "=", $1, $3); 
+            $$ = ast_binary_op(NODE_ASSIGN, "=", $1, $3); 
             $$->id_type = $3->id_type; 
+
+            code_print($3->code);
         }
     ;
 
@@ -281,38 +269,62 @@ blocoWhile
 
 expressao
     : expressao6                     { $$ = $1; }
-    | expressao TK_OC_OR expressao6  { $$ = binary_op(NODE_EXPR, "|", $1, $3); $$->id_type = data_type_infer($1->id_type, $3->id_type); }
+    | expressao TK_OC_OR expressao6  { $$ = ast_binary_op(NODE_EXPR, "|", $1, $3); $$->id_type = data_type_infer($1->id_type, $3->id_type); }
     ;
 
 expressao6
     : expressao5                       { $$ = $1; }
-    | expressao6 TK_OC_AND expressao5  { $$ = binary_op(NODE_EXPR, "&", $1, $3); $$->id_type = data_type_infer($1->id_type, $3->id_type); }
+    | expressao6 TK_OC_AND expressao5  { $$ = ast_binary_op(NODE_EXPR, "&", $1, $3); $$->id_type = data_type_infer($1->id_type, $3->id_type); }
     ;
 
 expressao5
     : expressao4                      { $$ = $1; }
-    | expressao5 TK_OC_EQ expressao4  { $$ = binary_op(NODE_EXPR, "==", $1, $3); $$->id_type = DATA_INT; }
-    | expressao5 TK_OC_NE expressao4  { $$ = binary_op(NODE_EXPR, "!=", $1, $3); $$->id_type = DATA_INT; }
+    | expressao5 TK_OC_EQ expressao4  { $$ = ast_binary_op(NODE_EXPR, "==", $1, $3); $$->id_type = DATA_INT; }
+    | expressao5 TK_OC_NE expressao4  { $$ = ast_binary_op(NODE_EXPR, "!=", $1, $3); $$->id_type = DATA_INT; }
     ;
 
 expressao4
     : expressao3                      { $$ = $1; }
-    | expressao4 '<' expressao3       { $$ = binary_op(NODE_EXPR, "<", $1, $3); $$->id_type = DATA_INT; }
-    | expressao4 '>' expressao3       { $$ = binary_op(NODE_EXPR, ">", $1, $3); $$->id_type = DATA_INT; }
-    | expressao4 TK_OC_LE expressao3  { $$ = binary_op(NODE_EXPR, "<=", $1, $3); $$->id_type = DATA_INT; }
-    | expressao4 TK_OC_GE expressao3  { $$ = binary_op(NODE_EXPR, ">=", $1, $3); $$->id_type = DATA_INT; }
+    | expressao4 '<' expressao3       { $$ = ast_binary_op(NODE_EXPR, "<", $1, $3); $$->id_type = DATA_INT; }
+    | expressao4 '>' expressao3       { $$ = ast_binary_op(NODE_EXPR, ">", $1, $3); $$->id_type = DATA_INT; }
+    | expressao4 TK_OC_LE expressao3  { $$ = ast_binary_op(NODE_EXPR, "<=", $1, $3); $$->id_type = DATA_INT; }
+    | expressao4 TK_OC_GE expressao3  { $$ = ast_binary_op(NODE_EXPR, ">=", $1, $3); $$->id_type = DATA_INT; }
     ;
 
 expressao3
     : expressao2                 { $$ = $1; }
-    | expressao3 '+' expressao2  { $$ = binary_op(NODE_EXPR, "+", $1, $3); $$->id_type = data_type_infer($1->id_type, $3->id_type); }
-    | expressao3 '-' expressao2  { $$ = binary_op(NODE_EXPR, "-", $1, $3); $$->id_type = data_type_infer($1->id_type, $3->id_type); }
+    | expressao3 '+' expressao2  
+        { 
+            $$ = ast_binary_op(NODE_EXPR, "+", $1, $3); 
+            $$->id_type = data_type_infer($1->id_type, $3->id_type);
+            code_gen_binary_op("add", $$, $1, $3);
+        }
+    | expressao3 '-' expressao2 
+        {
+            $$ = ast_binary_op(NODE_EXPR, "-", $1, $3);
+            $$->id_type = data_type_infer($1->id_type, $3->id_type);
+            code_gen_binary_op("sub", $$, $1, $3);
+        }
 
 expressao2
     : expressao1                 { $$ = $1; }
-    | expressao2 '*' expressao1  { $$ = binary_op(NODE_EXPR, "*", $1, $3); $$->id_type = data_type_infer($1->id_type, $3->id_type); }
-    | expressao2 '/' expressao1  { $$ = binary_op(NODE_EXPR, "/", $1, $3); $$->id_type = data_type_infer($1->id_type, $3->id_type); }
-    | expressao2 '%' expressao1  { $$ = binary_op(NODE_EXPR, "%", $1, $3); $$->id_type = data_type_infer($1->id_type, $3->id_type); }
+    | expressao2 '*' expressao1  
+        { 
+            $$ = ast_binary_op(NODE_EXPR, "*", $1, $3);
+            $$->id_type = data_type_infer($1->id_type, $3->id_type);
+            code_gen_binary_op("mul", $$, $1, $3);
+        }
+    | expressao2 '/' expressao1 
+        { 
+            $$ = ast_binary_op(NODE_EXPR, "/", $1, $3);
+            $$->id_type = data_type_infer($1->id_type, $3->id_type);
+            code_gen_binary_op("div", $$, $1, $3);
+        }
+    | expressao2 '%' expressao1  
+        { 
+            $$ = ast_binary_op(NODE_EXPR, "%", $1, $3);
+            $$->id_type = data_type_infer($1->id_type, $3->id_type);
+        }
     ;
 
 expressao1
@@ -325,7 +337,14 @@ expressao0
     : '(' expressao ')'      { $$ = $2; }
     | chamadaFuncao          { $$ = $1; }
     | terminal_lit_float     { $$ = $1; }
-    | terminal_lit_int       { $$ = $1; }
+    | terminal_lit_int 
+        { 
+            $$ = $1;
+
+            $$->location = new_temp();
+            $$->code = code_create("loadI", $$->label, NULL, $$->location);
+            //code_print($$->code);
+        }
     | terminal_identificador 
         { 
             struct symbol_t *symbol = find_symbol(scope_stack, $1->label);
@@ -343,6 +362,12 @@ expressao0
             } 
             $$ = $1; 
             $$->id_type = symbol->data_type;
+
+            $$->location = new_temp();
+            char offset[100];
+            sprintf(offset, "%d", symbol->offset);
+            $$->code = code_create("loadAI", "rfp", offset, $$->location);
+            //code_print($$->code);
         }
     ;
 
@@ -377,18 +402,28 @@ void yyerror(char const *mensagem) {
     fprintf(stderr, "Error at line %d: %s\n", get_line_number(), mensagem);
 }
 
-struct node_t *binary_op(node_type_t type, char* label, struct node_t *left, struct node_t *right) {
+struct node_t *ast_binary_op(node_type_t type, char* label, struct node_t *left, struct node_t *right) {
     struct node_t *root = node_create(type, label); 
     node_add_child(root, left); 
     node_add_child(root, right);
     return root;  
 }
 
-int checked_declaration(struct node_t *lexical_node, struct symbol_table_t *scope, symbol_type type, char* errorMsg) {
+void code_gen_binary_op(char* mnemonic, struct node_t *root, struct node_t *left, struct node_t *right) {
+    root->location = new_temp();
+    root->code = code_concat(
+        code_concat(left->code, right->code),
+        code_create(mnemonic, left->location, right->location, root->location)
+    );
+}
+
+
+int checked_declaration(struct node_t *lexical_node, struct symbol_table_t *scope, symbol_type type) {
     struct symbol_t *symbol = find_symbol_on_scope(scope, lexical_node->label);
     if (symbol != NULL) {
         printf(
-            errorMsg,
+            "Error: Redeclaration of %s '%s (%s)' on line %d: Found previous declaration '%s (%s)' on line %d.\n",
+            type == SYMBOL_VARIABLE ? "variable" : "function",
             lexical_node->label,
             type_to_str(data_type),
             lexical_node->lexical_value->lineNumber,

@@ -23,13 +23,18 @@ void free_symbol(struct symbol_t *symbol) {
     free(symbol);
 }
 
-int get_next_offset(struct symbol_table_t *table) { 
+int get_next_offset(struct symbol_table_t *table) {
+    // As we do not have global variables, the offset of the global table can always be 0
+    if (table->next == NULL) {
+        return 0;
+    }
+
     if (table->num_entries == 0) {
         return table->base_offset;
-    } else {
-        struct symbol_t *last_symbol = table->entries[table->num_entries - 1];
-        return last_symbol->offset + last_symbol->size;
     }
+
+    struct symbol_t *last_symbol = table->entries[table->num_entries - 1];
+    return last_symbol->offset + last_symbol->size;
 }
 
 struct symbol_table_t *enter_scope(struct symbol_table_t *table) {

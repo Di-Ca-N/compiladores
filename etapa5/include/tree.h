@@ -5,7 +5,9 @@ Grupo:
 */
 
 #pragma once
+
 #include "data_types.h"
+#include "code_gen.h"
 
 typedef enum {
     NODE_FUNC,
@@ -35,13 +37,20 @@ struct lexical_value_t {
 };
 
 struct node_t {
+    // Attributes used on code analysis and synthesis
     node_type_t type;
-    int nChildren;
     char *label;
     struct lexical_value_t *lexical_value;
+
+    struct code_t *code;
+    char* location;
+
+    data_type_t id_type;
+
+    // Fields to implement n-ary tree structure
+    int nChildren;
     struct node_t **children;
     struct node_t *next;
-    data_type_t id_type;
 };
 
 
