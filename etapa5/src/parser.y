@@ -197,6 +197,7 @@ identificador
     | terminal_identificador TK_OC_LE terminal_lit_int 
         { 
             check_no_redeclaration($1->lexical_value, scope_stack, SYMBOL_VARIABLE, data_type);
+
             declare_symbol(
                 scope_stack, 
                 create_symbol(
@@ -284,26 +285,66 @@ blocoWhile
 
 expressao
     : expressao6                     { $$ = $1; }
-    | expressao TK_OC_OR expressao6  { $$ = ast_binary_op(NODE_EXPR, "|", $1, $3); $$->id_type = data_type_infer($1->id_type, $3->id_type); }
+    | expressao TK_OC_OR expressao6  
+        {
+            $$ = ast_binary_op(NODE_EXPR, "|", $1, $3); 
+            $$->id_type = DATA_INT; 
+            code_gen_binary_op("or", $$, $1, $3); 
+        }
     ;
 
 expressao6
     : expressao5                       { $$ = $1; }
-    | expressao6 TK_OC_AND expressao5  { $$ = ast_binary_op(NODE_EXPR, "&", $1, $3); $$->id_type = data_type_infer($1->id_type, $3->id_type); }
+    | expressao6 TK_OC_AND expressao5  
+        {
+            $$ = ast_binary_op(NODE_EXPR, "&", $1, $3);
+            $$->id_type = DATA_INT;
+            code_gen_binary_op("and", $$, $1, $3);
+        }
     ;
 
 expressao5
     : expressao4                      { $$ = $1; }
-    | expressao5 TK_OC_EQ expressao4  { $$ = ast_binary_op(NODE_EXPR, "==", $1, $3); $$->id_type = DATA_INT; }
-    | expressao5 TK_OC_NE expressao4  { $$ = ast_binary_op(NODE_EXPR, "!=", $1, $3); $$->id_type = DATA_INT; }
+    | expressao5 TK_OC_EQ expressao4 
+        {
+            $$ = ast_binary_op(NODE_EXPR, "==", $1, $3); 
+            $$->id_type = DATA_INT;
+            code_gen_binary_op("cmp_EQ", $$, $1, $3); 
+        }
+    | expressao5 TK_OC_NE expressao4 
+        {
+            $$ = ast_binary_op(NODE_EXPR, "!=", $1, $3); 
+            $$->id_type = DATA_INT;
+            code_gen_binary_op("cmp_NE", $$, $1, $3); 
+        }
     ;
 
 expressao4
-    : expressao3                      { $$ = $1; }
-    | expressao4 '<' expressao3       { $$ = ast_binary_op(NODE_EXPR, "<", $1, $3); $$->id_type = DATA_INT; }
-    | expressao4 '>' expressao3       { $$ = ast_binary_op(NODE_EXPR, ">", $1, $3); $$->id_type = DATA_INT; }
-    | expressao4 TK_OC_LE expressao3  { $$ = ast_binary_op(NODE_EXPR, "<=", $1, $3); $$->id_type = DATA_INT; }
-    | expressao4 TK_OC_GE expressao3  { $$ = ast_binary_op(NODE_EXPR, ">=", $1, $3); $$->id_type = DATA_INT; }
+    : expressao3 { $$ = $1; }
+    | expressao4 '<' expressao3 
+        {
+            $$ = ast_binary_op(NODE_EXPR, "<", $1, $3); 
+            $$->id_type = DATA_INT; 
+            code_gen_binary_op("cmp_LT", $$, $1, $3); 
+        }
+    | expressao4 '>' expressao3
+        {
+            $$ = ast_binary_op(NODE_EXPR, ">", $1, $3);
+            $$->id_type = DATA_INT; 
+            code_gen_binary_op("cmp_GT", $$, $1, $3);
+        }
+    | expressao4 TK_OC_LE expressao3 
+        {
+            $$ = ast_binary_op(NODE_EXPR, "<=", $1, $3); 
+            $$->id_type = DATA_INT;
+            code_gen_binary_op("cmp_LE", $$, $1, $3);
+        }
+    | expressao4 TK_OC_GE expressao3 
+        {
+            $$ = ast_binary_op(NODE_EXPR, ">=", $1, $3); 
+            $$->id_type = DATA_INT; 
+            code_gen_binary_op("cmp_GE", $$, $1, $3);
+        }
     ;
 
 expressao3
@@ -344,7 +385,11 @@ expressao2
 
 expressao1
     : expressao0      { $$ = $1; }
-    | '-' expressao1  { $$ = node_create(NODE_EXPR, "-"); node_add_child($$, $2); $$->id_type = $2->id_type; }
+    | '-' expressao1  {
+        $$ = node_create(NODE_EXPR, "-"); 
+        node_add_child($$, $2); 
+        $$->id_type = $2->id_type;
+    }
     | '!' expressao1  { $$ = node_create(NODE_EXPR, "!"); node_add_child($$, $2); $$->id_type = $2->id_type; }
     ;
 
