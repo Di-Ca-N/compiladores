@@ -141,7 +141,7 @@ blocoDeComandos
 
 listaDeComandos
     : listaDeComandos comando { $$ = node_append($1, $2); }
-    | comando  { $$ = $1; }
+    | comando { $$ = $1; }
     ;
 
 comando
@@ -221,6 +221,8 @@ atribuicao
             $$->id_type = $3->id_type; 
 
             code_print($3->code);
+
+            // ToDo
         }
     ;
 
@@ -259,12 +261,14 @@ retorno
 
 blocoIf
     : TK_PR_IF '(' expressao ')' blocoDeComandos blocoElse 
-    {
-        $$ = node_create(NODE_IF, "if");
-        node_add_child($$, $3);
-        if($5 != NULL) node_add_child($$, $5);
-        if($6 != NULL) node_add_child($$, $6);
-    }
+        {
+            $$ = node_create(NODE_IF, "if");
+            node_add_child($$, $3);
+            if($5 != NULL) node_add_child($$, $5);
+            if($6 != NULL) node_add_child($$, $6);
+            
+            // ToDo
+        }
     ;
 
 blocoElse
@@ -280,11 +284,13 @@ blocoWhile
             if ($5 != NULL) {
                 node_add_child($$, $5); 
             }
+
+            // ToDo
         }
     ;
 
 expressao
-    : expressao6                     { $$ = $1; }
+    : expressao6 { $$ = $1; }
     | expressao TK_OC_OR expressao6  
         {
             $$ = ast_binary_op(NODE_EXPR, "|", $1, $3); 
@@ -294,7 +300,7 @@ expressao
     ;
 
 expressao6
-    : expressao5                       { $$ = $1; }
+    : expressao5 { $$ = $1; }
     | expressao6 TK_OC_AND expressao5  
         {
             $$ = ast_binary_op(NODE_EXPR, "&", $1, $3);
@@ -304,7 +310,7 @@ expressao6
     ;
 
 expressao5
-    : expressao4                      { $$ = $1; }
+    : expressao4 { $$ = $1; }
     | expressao5 TK_OC_EQ expressao4 
         {
             $$ = ast_binary_op(NODE_EXPR, "==", $1, $3); 
@@ -348,7 +354,7 @@ expressao4
     ;
 
 expressao3
-    : expressao2                 { $$ = $1; }
+    : expressao2 { $$ = $1; }
     | expressao3 '+' expressao2  
         { 
             $$ = ast_binary_op(NODE_EXPR, "+", $1, $3); 
@@ -385,18 +391,26 @@ expressao2
 
 expressao1
     : expressao0      { $$ = $1; }
-    | '-' expressao1  {
-        $$ = node_create(NODE_EXPR, "-"); 
-        node_add_child($$, $2); 
-        $$->id_type = $2->id_type;
-    }
-    | '!' expressao1  { $$ = node_create(NODE_EXPR, "!"); node_add_child($$, $2); $$->id_type = $2->id_type; }
+    | '-' expressao1 
+        {
+            $$ = node_create(NODE_EXPR, "-"); 
+            node_add_child($$, $2); 
+            $$->id_type = $2->id_type;
+            // ToDo
+        }
+    | '!' expressao1 
+        { 
+            $$ = node_create(NODE_EXPR, "!"); 
+            node_add_child($$, $2); 
+            $$->id_type = $2->id_type;
+            // ToDo 
+        }
     ;
 
 expressao0
-    : '(' expressao ')'      { $$ = $2; }
-    | chamadaFuncao          { $$ = $1; }
-    | terminal_lit_float     { $$ = $1; }
+    : '(' expressao ')' { $$ = $2; }
+    | chamadaFuncao { $$ = $1; }
+    | terminal_lit_float { $$ = $1; }
     | terminal_lit_int 
         { 
             $$ = $1;
@@ -414,9 +428,9 @@ expressao0
             $$->id_type = symbol->data_type;
 
             $$->location = new_temp();
-            char offset[100];
-            sprintf(offset, "%d", symbol->offset);
-            $$->code = code_create("loadAI", "rfp", offset, $$->location);
+            char buf[100];
+            snprintf(buf, sizeof(buf), "%d", symbol->offset);
+            $$->code = code_create("loadAI", "rfp", buf, $$->location);
         }
     ;
 
