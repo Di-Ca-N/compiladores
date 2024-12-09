@@ -277,6 +277,7 @@ blocoIf
             if($6 != NULL) node_add_child($$, $6);
 
             // ToDo: Code Generation
+            
         }
     ;
 
@@ -414,7 +415,17 @@ expressao1
             $$ = node_create(NODE_EXPR, "!"); 
             node_add_child($$, $2); 
             $$->id_type = $2->id_type;
-            // ToDo: Code Generation 
+
+            // ToDo: Code Generation
+            $$->location = new_temp();
+            char *temp0 = new_temp();
+
+            $$->code = code_concat_many(
+                $2->code,
+                code_create("loadI", "0", NULL, temp0),
+                code_create("cmp_EQ", $2->location, temp0, $$->location),
+                NULL
+            );
         }
     ;
 
