@@ -6,12 +6,13 @@ Grupo:
 
 %code requires {
     #include "tree.h"
+    #include <stdio.h>
 }
 
 %{
-#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "tree.h"
 #include "table.h"
@@ -65,7 +66,7 @@ void code_gen_binary_op(char* mnemonic, struct node_t *root, struct node_t *left
 
 /* Helper non-terminals for semantic analysis */
 empilha_tabela: %empty { scope_stack = enter_scope(scope_stack); }
-desempilha_tabela: %empty { scope_stack = exit_scope(scope_stack); print_table(scope_stack); }
+desempilha_tabela: %empty { scope_stack = exit_scope(scope_stack); }
 
 
 programa
@@ -220,9 +221,16 @@ atribuicao
             $$ = ast_binary_op(NODE_ASSIGN, "=", $1, $3); 
             $$->id_type = $3->id_type; 
 
-            code_print($3->code);
+            struct symbol_t *symbol = find_symbol(scope_stack, $1->label);
+            char buf[100];
+            snprintf(buf, sizeof(buf), "%d", symbol->offset);
 
-            // ToDo
+            $$->location = new_temp();
+            $$->code = code_concat($3->code, code_create("storeAI", $3->location, "rfp", buf));
+
+            code_print($$->code);
+
+            // ToDo: Code Generation
         }
     ;
 
@@ -267,7 +275,7 @@ blocoIf
             if($5 != NULL) node_add_child($$, $5);
             if($6 != NULL) node_add_child($$, $6);
             
-            // ToDo
+            // ToDo: Code Generation
         }
     ;
 
@@ -285,7 +293,7 @@ blocoWhile
                 node_add_child($$, $5); 
             }
 
-            // ToDo
+            // ToDo: Code Generation
         }
     ;
 
@@ -374,7 +382,7 @@ expressao2
         { 
             $$ = ast_binary_op(NODE_EXPR, "*", $1, $3);
             $$->id_type = data_type_infer($1->id_type, $3->id_type);
-            code_gen_binary_op("mul", $$, $1, $3);
+            code_gen_binary_op("mult", $$, $1, $3);
         }
     | expressao2 '/' expressao1 
         { 
@@ -396,14 +404,14 @@ expressao1
             $$ = node_create(NODE_EXPR, "-"); 
             node_add_child($$, $2); 
             $$->id_type = $2->id_type;
-            // ToDo
+            // ToDo: Code Generation
         }
     | '!' expressao1 
         { 
             $$ = node_create(NODE_EXPR, "!"); 
             node_add_child($$, $2); 
             $$->id_type = $2->id_type;
-            // ToDo 
+            // ToDo: Code Generation 
         }
     ;
 
@@ -423,13 +431,15 @@ expressao0
             check_was_declared($1->lexical_value, scope_stack, SYMBOL_VARIABLE);
             check_correct_usage($1->lexical_value, scope_stack, SYMBOL_VARIABLE);
     
-            $$ = $1; 
+            $$ = $1;
+
             struct symbol_t *symbol = find_symbol(scope_stack, $1->label);
             $$->id_type = symbol->data_type;
 
-            $$->location = new_temp();
             char buf[100];
             snprintf(buf, sizeof(buf), "%d", symbol->offset);
+
+            $$->location = new_temp();
             $$->code = code_create("loadAI", "rfp", buf, $$->location);
         }
     ;

@@ -58,16 +58,31 @@ void code_print(code_t *code) {
     if (code == NULL) return;
 
     struct iloc_t instr = code->instruction;
-    printf(
-        "%2s%1s %-6s %3s%1s %3s => %2s\n", 
-        instr.label != NULL ? instr.label : "", 
-        instr.label != NULL ? ":" : "",
-        instr.mnemonic, 
-        instr.arg1 != NULL ? instr.arg1 : "",
-        instr.arg2 != NULL ? "," : "",
-        instr.arg2 != NULL ? instr.arg2 : "", 
-        instr.arg3 != NULL ? instr.arg3 : ""
-    );
+    if (strcmp(instr.mnemonic, "storeAI") == 0) {
+        printf(
+            "%2s%1s %-7s %3s => %3s%1s %3s\n", 
+            instr.label != NULL ? instr.label : "", 
+            instr.label != NULL ? ":" : "",
+            instr.mnemonic, 
+            instr.arg1 != NULL ? instr.arg1 : "",
+            instr.arg2 != NULL ? instr.arg2 : "", 
+            instr.arg2 != NULL ? "," : "",
+            instr.arg3 != NULL ? instr.arg3 : ""
+        );
+    } else {
+        printf(
+            "%2s%1s %-7s %3s%1s %3s => %3s\n", 
+            instr.label != NULL ? instr.label : "", 
+            instr.label != NULL ? ":" : "",
+            instr.mnemonic, 
+            instr.arg1 != NULL ? instr.arg1 : "",
+            instr.arg2 != NULL ? "," : "",
+            instr.arg2 != NULL ? instr.arg2 : "", 
+            instr.arg3 != NULL ? instr.arg3 : ""
+        );
+    }
+
+    
     code_print(code->next);
 }
 
