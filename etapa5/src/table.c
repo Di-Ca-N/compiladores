@@ -131,3 +131,13 @@ void print_table(struct symbol_table_t *table) {
     printf("=============================\n");
 }
 
+char* symbol_type_str(symbol_type type) {
+    switch (type) {
+        case SYMBOL_VARIABLE:
+            return "variable";
+        case SYMBOL_FUNCTION:
+            return "function";
+        default:
+            return "unknown";
+    }
+}

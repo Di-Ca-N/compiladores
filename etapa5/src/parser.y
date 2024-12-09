@@ -15,7 +15,7 @@ Grupo:
 
 #include "tree.h"
 #include "table.h"
-#include "errors.h"
+#include "semantic_checks.h"
 
 // Global functions and variables defined on other files
 extern int get_line_number();
@@ -29,7 +29,6 @@ int yylex(void);
 void yyerror (char const *mensagem);
 struct node_t *ast_binary_op(node_type_t type, char* label, struct node_t *left, struct node_t *right);
 void code_gen_binary_op(char* mnemonic, struct node_t *root, struct node_t *left, struct node_t *right);
-int checked_declaration(struct node_t *lexical_node, struct symbol_table_t *scope, symbol_type type);
 %}
 
 %define parse.error verbose 
@@ -84,8 +83,14 @@ funcao: empilha_tabela cabecalhoFuncao corpoFuncao desempilha_tabela { $$ = $2; 
 cabecalhoFuncao
     : terminal_identificador '=' listaDeParametros '>' tipo 
         {
-            int err = checked_declaration($1, scope_stack->next, SYMBOL_FUNCTION);
-            if (err) exit(ERR_DECLARED);
+            check_no_redeclaration($1->lexical_value, scope_stack->next, SYMBOL_FUNCTION, data_type);
+            declare_symbol(
+                scope_stack->next, 
+                create_symbol(
+                    $1->label, $1->lexical_value->lineNumber, 
+                    SYMBOL_FUNCTION, data_type
+                )
+            );
 
             $$ = node_create(NODE_FUNC, $1->label); 
             node_free($1);
@@ -101,8 +106,16 @@ listaDeParametros
 parametro
     : terminal_identificador '<' '-' tipo 
         { 
-            int err = checked_declaration($1, scope_stack, SYMBOL_VARIABLE);
-            if (err) exit(err);
+            check_no_redeclaration($1->lexical_value, scope_stack, SYMBOL_VARIABLE, data_type);
+            declare_symbol(
+                scope_stack, 
+                create_symbol(
+                    $1->lexical_value->value,
+                    $1->lexical_value->lineNumber, 
+                    SYMBOL_VARIABLE, 
+                    data_type
+                )
+            );
 
             $$ = NULL;
             node_free($1);
@@ -154,22 +167,45 @@ listaDeIdentificadores
 identificador
     : terminal_identificador 
         { 
-            int err = checked_declaration($1, scope_stack, SYMBOL_VARIABLE);
-            if (err) exit(err);
-
+            check_no_redeclaration($1->lexical_value, scope_stack, SYMBOL_VARIABLE, data_type);
+            declare_symbol(
+                scope_stack, 
+                create_symbol(
+                    $1->lexical_value->value, 
+                    $1->lexical_value->lineNumber, 
+                    SYMBOL_VARIABLE, 
+                    data_type
+                )
+            );
             $$ = NULL; 
             node_free($1); 
         }
     | terminal_identificador TK_OC_LE terminal_lit_float 
         { 
-            int err = checked_declaration($1, scope_stack, SYMBOL_VARIABLE);
-            if (err) exit(err);
+            check_no_redeclaration($1->lexical_value, scope_stack, SYMBOL_VARIABLE, data_type);
+            declare_symbol(
+                scope_stack, 
+                create_symbol(
+                    $1->lexical_value->value, 
+                    $1->lexical_value->lineNumber, 
+                    SYMBOL_VARIABLE, 
+                    data_type
+                )
+            );
             $$ = ast_binary_op(NODE_VAR_INIT, "<=", $1, $3); 
         }
     | terminal_identificador TK_OC_LE terminal_lit_int 
         { 
-            int err = checked_declaration($1, scope_stack, SYMBOL_VARIABLE);
-            if (err) exit(err);
+            check_no_redeclaration($1->lexical_value, scope_stack, SYMBOL_VARIABLE, data_type);
+            declare_symbol(
+                scope_stack, 
+                create_symbol(
+                    $1->lexical_value->value, 
+                    $1->lexical_value->lineNumber, 
+                    SYMBOL_VARIABLE, 
+                    data_type
+                )
+            );
             $$ = ast_binary_op(NODE_VAR_INIT, "<=", $1, $3); 
         }
     ;
@@ -177,18 +213,8 @@ identificador
 atribuicao 
     : terminal_identificador '=' expressao 
         { 
-            struct symbol_t *symbol = find_symbol(scope_stack, $1->label);
-            if (symbol == NULL) {
-                printf(
-                    "Error: Assignment to undeclared variable '%s' on line %d.\n", 
-                    $1->label, $1->lexical_value->lineNumber
-                );
-                exit(ERR_UNDECLARED);
-            }
-            if(symbol->type == SYMBOL_FUNCTION) {
-                printf("Error: Function %s declared on line %d called as Variable on line %d.\n", $1->label, symbol->line_number, $1->lexical_value->lineNumber);
-                exit(ERR_FUNCTION);
-            }
+            check_was_declared($1->lexical_value, scope_stack, SYMBOL_VARIABLE);
+            check_correct_usage($1->lexical_value, scope_stack, SYMBOL_VARIABLE);
 
             $$ = ast_binary_op(NODE_ASSIGN, "=", $1, $3); 
             $$->id_type = $3->id_type; 
@@ -200,20 +226,9 @@ atribuicao
 chamadaFuncao
     : terminal_identificador '(' listaDeArgumentos ')' 
         { 
-            
-            struct symbol_t *symbol = find_symbol(scope_stack, $1->label);
-            if (symbol == NULL) {
-                printf(
-                    "Error: Call to undeclared function '%s' on line %d.\n", 
-                    $1->label, $1->lexical_value->lineNumber
-                );
-                exit(ERR_UNDECLARED);
-            }
-            if(symbol->type == SYMBOL_VARIABLE)
-            {
-                printf("Error: Variable %s declared on line %d called as Function on line %d.\n", $1->label, symbol->line_number, $1->lexical_value->lineNumber);
-                exit(ERR_VARIABLE);
-            }
+            check_was_declared($1->lexical_value, scope_stack, SYMBOL_FUNCTION);
+            check_correct_usage($1->lexical_value, scope_stack, SYMBOL_FUNCTION);
+
             char *dest = malloc(strlen("call ") + strlen($1->label) + 1); 
             strcpy(dest, "call ");
             strcat(dest, $1->label); 
@@ -307,7 +322,7 @@ expressao3
         }
 
 expressao2
-    : expressao1                 { $$ = $1; }
+    : expressao1 { $$ = $1; }
     | expressao2 '*' expressao1  
         { 
             $$ = ast_binary_op(NODE_EXPR, "*", $1, $3);
@@ -343,31 +358,20 @@ expressao0
 
             $$->location = new_temp();
             $$->code = code_create("loadI", $$->label, NULL, $$->location);
-            //code_print($$->code);
         }
     | terminal_identificador 
         { 
-            struct symbol_t *symbol = find_symbol(scope_stack, $1->label);
-            if (symbol == NULL) {
-                printf(
-                    "Error: Using undeclared variable '%s' on line %d.\n", 
-                    $1->label, $1->lexical_value->lineNumber
-                );
-                exit(ERR_UNDECLARED);
-            }
-            if(symbol->type == SYMBOL_FUNCTION)
-            {
-                printf("Error: Function %s declared on line %d called as Variable on line %d.\n", $1->label, symbol->line_number, $1->lexical_value->lineNumber);
-                exit(ERR_FUNCTION);
-            } 
+            check_was_declared($1->lexical_value, scope_stack, SYMBOL_VARIABLE);
+            check_correct_usage($1->lexical_value, scope_stack, SYMBOL_VARIABLE);
+    
             $$ = $1; 
+            struct symbol_t *symbol = find_symbol(scope_stack, $1->label);
             $$->id_type = symbol->data_type;
 
             $$->location = new_temp();
             char offset[100];
             sprintf(offset, "%d", symbol->offset);
             $$->code = code_create("loadAI", "rfp", offset, $$->location);
-            //code_print($$->code);
         }
     ;
 
@@ -415,31 +419,4 @@ void code_gen_binary_op(char* mnemonic, struct node_t *root, struct node_t *left
         code_concat(left->code, right->code),
         code_create(mnemonic, left->location, right->location, root->location)
     );
-}
-
-
-int checked_declaration(struct node_t *lexical_node, struct symbol_table_t *scope, symbol_type type) {
-    struct symbol_t *symbol = find_symbol_on_scope(scope, lexical_node->label);
-    if (symbol != NULL) {
-        printf(
-            "Error: Redeclaration of %s '%s (%s)' on line %d: Found previous declaration '%s (%s)' on line %d.\n",
-            type == SYMBOL_VARIABLE ? "variable" : "function",
-            lexical_node->label,
-            type_to_str(data_type),
-            lexical_node->lexical_value->lineNumber,
-            symbol->label,
-            type_to_str(symbol->data_type),
-            symbol->line_number
-        );
-        return ERR_DECLARED;
-    }
-
-    declare_symbol(
-        scope, 
-        create_symbol(
-            lexical_node->label, lexical_node->lexical_value->lineNumber, 
-            type, data_type
-        )
-    );
-    return 0;
 }

@@ -51,3 +51,6 @@ struct symbol_t *find_symbol_on_scope(struct symbol_table_t *table, char* key);
 
 // Prints the table for debug purposes
 void print_table(struct symbol_table_t *table);
+
+// Get a string representation of the symbol type
+char* symbol_type_str(symbol_type type);
