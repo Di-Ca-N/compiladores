@@ -4,11 +4,6 @@ Grupo:
 - Geancarlo Kozenieski (00264414)
 */
 
-%code requires {
-    #include "tree.h"
-    #include <stdio.h>
-}
-
 %{
 #include <string.h>
 #include <stdlib.h>
@@ -410,7 +405,9 @@ expressao1
             $$ = node_create(NODE_EXPR, "-"); 
             node_add_child($$, $2); 
             $$->id_type = $2->id_type;
-            // ToDo: Code Generation
+            
+            $$->location = new_temp();
+            $$->code = code_concat($2->code, code_create("rsubI", $2->location, "0", $$->location)); 
         }
     | '!' expressao1 
         { 
