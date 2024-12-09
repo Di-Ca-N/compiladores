@@ -79,7 +79,7 @@ listaDeFuncoes
     | funcao { $$ = $1; }
     ;
 
-funcao: empilha_tabela cabecalhoFuncao corpoFuncao desempilha_tabela { $$ = $2; node_add_child($$, $3); };
+funcao: empilha_tabela cabecalhoFuncao corpoFuncao desempilha_tabela { $$ = $2; node_add_child($$, $3); code_print($3->code);};
 
 cabecalhoFuncao
     : terminal_identificador '=' listaDeParametros '>' tipo 
@@ -141,7 +141,13 @@ blocoDeComandos
     ;
 
 listaDeComandos
-    : listaDeComandos comando { $$ = node_append($1, $2); }
+    : listaDeComandos comando 
+        {
+            $$ = node_append($1, $2); 
+            if ($1 != NULL && $2 != NULL) {
+                $$->code = code_concat($1->code, $2->code);
+            }
+        }
     | comando { $$ = $1; }
     ;
 
@@ -228,7 +234,7 @@ atribuicao
             $$->location = new_temp();
             $$->code = code_concat($3->code, code_create("storeAI", $3->location, "rfp", buf));
 
-            code_print($$->code);
+            //code_print($$->code);
 
             // ToDo: Code Generation
         }
@@ -274,7 +280,7 @@ blocoIf
             node_add_child($$, $3);
             if($5 != NULL) node_add_child($$, $5);
             if($6 != NULL) node_add_child($$, $6);
-            
+
             // ToDo: Code Generation
         }
     ;
@@ -484,8 +490,10 @@ struct node_t *ast_binary_op(node_type_t type, char* label, struct node_t *left,
 
 void code_gen_binary_op(char* mnemonic, struct node_t *root, struct node_t *left, struct node_t *right) {
     root->location = new_temp();
-    root->code = code_concat(
-        code_concat(left->code, right->code),
-        code_create(mnemonic, left->location, right->location, root->location)
+    root->code = code_concat_many(
+        left->code, 
+        right->code,
+        code_create(mnemonic, left->location, right->location, root->location),
+        NULL
     );
 }

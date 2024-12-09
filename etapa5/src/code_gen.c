@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdarg.h>
 
 #define MAX_TEMP_LEN 100
 #define MAX_LABEL_LEN 100
@@ -20,6 +21,11 @@ struct code_t {
     struct code_t *next;
 };
 
+code_t *code_create_with_label(char *label, char* mnemonic, char* arg1, char* arg2, char* arg3) {
+    code_t *code = code_create(mnemonic, arg1, arg2, arg3);
+    set_label(code, label);
+    return code;
+}
 
 code_t *code_create(char* mnemonic, char* arg1, char* arg2, char* arg3) {
     code_t *code = (code_t *) malloc(sizeof(code_t));
@@ -58,7 +64,14 @@ void code_print(code_t *code) {
     if (code == NULL) return;
 
     struct iloc_t instr = code->instruction;
-    if (strcmp(instr.mnemonic, "storeAI") == 0) {
+    if (strcmp(instr.mnemonic, "nop") == 0) {
+        printf(
+            "%2s%1s %-7s\n",
+            instr.label != NULL ? instr.label : "", 
+            instr.label != NULL ? ":" : "",
+            instr.mnemonic
+        );
+    } else if (strcmp(instr.mnemonic, "storeAI") == 0 || strcmp(instr.mnemonic, "cbr") == 0) {
         printf(
             "%2s%1s %-7s %3s => %3s%1s %3s\n", 
             instr.label != NULL ? instr.label : "", 
@@ -88,6 +101,12 @@ void code_print(code_t *code) {
 
 // Concatenate the given codes, placing the second after the first.
 code_t *code_concat(code_t *first, code_t *second) {
+    if (second == NULL)
+        return first;
+    
+    if (first == NULL && second != NULL)
+        return second;
+
     code_t *p = first;
 
     while (p->next != NULL) {
@@ -95,5 +114,19 @@ code_t *code_concat(code_t *first, code_t *second) {
     }
 
     p->next = second;
+    return first;
+}
+
+
+code_t *code_concat_many(code_t *first, ...) {
+    va_list ptr;
+
+    va_start(ptr, first);
+
+    for (code_t *next_code = va_arg(ptr, code_t*); next_code != NULL; next_code = va_arg(ptr, code_t*)) {
+        first = code_concat(first, next_code);
+    }
+    va_end(ptr);
+    
     return first;
 }
