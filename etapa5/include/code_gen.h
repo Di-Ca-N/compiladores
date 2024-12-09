@@ -23,4 +23,7 @@ void code_print(code_t *code);
 
 // Concatenate the given codes, placing the second after the first.
 code_t *code_concat(code_t *first, code_t *second);
+
+// Receive multiple code arguments and concatenate them in the given order.
+// A NULL argument mark the end of the argument list and must be present.
 code_t *code_concat_many(code_t *first, ...);
