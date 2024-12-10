@@ -4,14 +4,17 @@ Grupo:
 - Geancarlo Kozenieski (00264414)
 */
 
+
 %{
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
 
 #include "tree.h"
+#include "code_gen.h"
 #include "table.h"
 #include "semantic_checks.h"
+#include "translation_helpers.h"
 
 // Global functions and variables defined on other files
 extern int get_line_number();
@@ -23,8 +26,6 @@ data_type_t data_type;
 // Prototype of helper functions on this file
 int yylex(void);
 void yyerror (char const *mensagem);
-struct node_t *ast_binary_op(node_type_t type, char* label, struct node_t *left, struct node_t *right);
-void code_gen_binary_op(char* mnemonic, struct node_t *root, struct node_t *left, struct node_t *right);
 %}
 
 %define parse.error verbose 
@@ -278,6 +279,19 @@ blocoIf
 
             // ToDo: Code Generation
             
+            char *true_label = new_label();
+            char *false_label = new_label();
+            char *final_label = new_label();
+
+            $$->code = code_concat_many(
+                $3->code,
+                code_create("cbr", $3->location, true_label, false_label),
+                safe_set_label($5, true_label),
+                code_create("jumpI", NULL, final_label, NULL),
+                safe_set_label($6, false_label),
+                code_create_with_label(final_label, "nop", NULL, NULL, NULL),
+                NULL
+            );
         }
     ;
 
@@ -296,6 +310,22 @@ blocoWhile
             }
 
             // ToDo: Code Generation
+            char *true_label = new_label();
+            char *false_label = new_label();
+            char *back_label = new_label();
+
+            set_label($3->code, back_label);
+            
+            code_t *code = safe_set_label($5, true_label);
+
+            $$->code = code_concat_many(
+                $3->code,
+                code_create("cbr", $3->location, true_label, false_label),
+                code,
+                code_create("jumpI", NULL, back_label, NULL),
+                code_create_with_label(false_label, "nop", NULL, NULL, NULL),
+                NULL
+            );
         }
     ;
 
@@ -487,21 +517,4 @@ terminal_lit_int
 %%
 void yyerror(char const *mensagem) {
     fprintf(stderr, "Error at line %d: %s\n", get_line_number(), mensagem);
-}
-
-struct node_t *ast_binary_op(node_type_t type, char* label, struct node_t *left, struct node_t *right) {
-    struct node_t *root = node_create(type, label); 
-    node_add_child(root, left); 
-    node_add_child(root, right);
-    return root;  
-}
-
-void code_gen_binary_op(char* mnemonic, struct node_t *root, struct node_t *left, struct node_t *right) {
-    root->location = new_temp();
-    root->code = code_concat_many(
-        left->code, 
-        right->code,
-        code_create(mnemonic, left->location, right->location, root->location),
-        NULL
-    );
 }

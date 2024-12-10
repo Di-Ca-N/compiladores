@@ -2,11 +2,6 @@
 
 typedef struct code_t code_t;
 
-struct code_attrs_t {
-    code_t *code;
-    char* location;
-};
-
 // Create code containing the given instruction
 code_t *code_create(char* mnemonic, char* arg1, char* arg2, char* arg3);
 code_t *code_create_with_label(char *label, char* mnemonic, char* arg1, char* arg2, char* arg3);

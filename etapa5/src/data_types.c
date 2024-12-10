@@ -23,5 +23,5 @@ data_type_t data_type_infer(data_type_t first, data_type_t second){
 }
 
 int get_data_type_size(data_type_t type) {
-    return 4; // Right now we only have types of 4 bytes
+    return 4;
 }
