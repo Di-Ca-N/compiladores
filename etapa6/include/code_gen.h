@@ -6,7 +6,18 @@ Grupo:
 
 #pragma once
 
-typedef struct code_t code_t;
+struct iloc_t {
+    char* label;
+    char* mnemonic;
+    char* arg1;
+    char* arg2;
+    char* arg3;
+};
+
+typedef struct code_t {
+    struct iloc_t instruction;
+    struct code_t *next;
+} code_t;
 
 // Create code containing the given instruction
 code_t *code_create(char* mnemonic, char* arg1, char* arg2, char* arg3);

@@ -15,6 +15,7 @@ Grupo:
 #include "table.h"
 #include "semantic_checks.h"
 #include "translation_helpers.h"
+#include "asm.h"
 
 // Global functions and variables defined on other files
 extern int get_line_number();
@@ -75,7 +76,14 @@ listaDeFuncoes
     | funcao { $$ = $1; }
     ;
 
-funcao: empilha_tabela cabecalhoFuncao corpoFuncao desempilha_tabela { $$ = $2; node_add_child($$, $3); code_print($3->code);};
+funcao: empilha_tabela cabecalhoFuncao corpoFuncao desempilha_tabela 
+    { 
+        $$ = $2; 
+        node_add_child($$, $3); 
+        //code_print($3->code);
+        //printf("===========================\n");
+        generateAsm($3->code);
+    };
 
 cabecalhoFuncao
     : terminal_identificador '=' listaDeParametros '>' tipo 
@@ -266,6 +274,8 @@ retorno
         { 
             $$ = node_create(NODE_RETURN, "return"); 
             node_add_child($$, $2); 
+
+            $$->code = code_concat_many($2->code, code_create("ret", $2->location, NULL, NULL), NULL);
         }
     ;
 

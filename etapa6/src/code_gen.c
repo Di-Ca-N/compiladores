@@ -14,18 +14,6 @@ Grupo:
 #define MAX_TEMP_LEN 100
 #define MAX_LABEL_LEN 100
 
-struct iloc_t {
-    char* label;
-    char* mnemonic;
-    char* arg1;
-    char* arg2;
-    char* arg3;
-};
-
-struct code_t {
-    struct iloc_t instruction;
-    struct code_t *next;
-};
 
 code_t *code_create_with_label(char *label, char* mnemonic, char* arg1, char* arg2, char* arg3) {
     code_t *code = code_create(mnemonic, arg1, arg2, arg3);
@@ -99,6 +87,14 @@ void code_print(code_t *code) {
             instr.arg2 != NULL ? instr.arg2 : "", 
             instr.arg2 != NULL ? "," : "",
             instr.arg3 != NULL ? instr.arg3 : ""
+        );
+    } else if (strcmp(instr.mnemonic, "ret") == 0) {
+        printf(
+            "%2s%1s %-7s %3s\n", 
+            instr.label != NULL ? instr.label : "", 
+            instr.label != NULL ? ":" : "",
+            instr.mnemonic, 
+            instr.arg1 != NULL ? instr.arg1 : ""
         );
     } else {
         char *arrow = strncmp(instr.mnemonic, "cmp", 3) == 0 ? "->" : "=>";
