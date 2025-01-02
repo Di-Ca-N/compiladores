@@ -1,0 +1,19 @@
+main = > int {
+    int a, b, c;
+
+    a = 2;
+    b = 3;
+    c = 4;
+    int d;
+    d = a + b + c;
+
+    if (d == 9) {
+    } else {
+    };
+
+    while (0) {};
+
+    {{{};};};
+    int f;
+    f = 5;
+}
