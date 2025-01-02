@@ -1,3 +1,9 @@
+/*
+Grupo:
+- Diego Cardoso Nunes (00333984)
+- Geancarlo Kozenieski (00264414)
+*/
+
 #pragma once
 
 typedef struct code_t code_t;
