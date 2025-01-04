@@ -5,43 +5,138 @@ Grupo:
 */
 
 #include "asm.h"
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 
-#define streq(a, b) (strcmp(a, b) == 0)
+#include "errors.h"
 
-char* get_register(char *temp) {
-    if (streq(temp, "r0")) {
-        return "%ebx";
-    } else if (streq(temp, "r1")) {
-        return "%ecx";
-    } else if (streq(temp, "r2")) {
-        return "%edx";
-    } else if (streq(temp, "r3")) {
-        return "%esi";
-    } else if (streq(temp, "r4")) {
-        return "%edi";
-    } else if (streq(temp, "r5")) {
-        return "%r8d";
-    } else if (streq(temp, "r6")) {
-        return "%r9d";
-    } else if (streq(temp, "r7")) {
-        return "%r10d";
-    } else if (streq(temp, "r8")) {
-        return "%r11d";
-    } else if (streq(temp, "r9")) {
-        return "%r12d";
-    } else if (streq(temp, "r10")) {
-        return "%r13d";
-    } else if (streq(temp, "r11")) {
-        return "%r14d";
-    } else if (streq(temp, "r12")) {
-        return "%r15d";
-    } else {
-        printf("The program requires more registers than available\n");
-        exit(100);
+
+#define streq(a, b) (strcmp(a, b) == 0)
+#define MAX_TEMPS 10000
+// x86_64 has 16 general purpose registers, but two of them are intended for 
+// stack management and we reserve eax for operations that require its use 
+// (such as division) and for auxiliary use
+#define NUM_REGISTERS 13
+
+// Variables used to assign registers
+static int num_temps = 0;
+static int first_use[MAX_TEMPS];
+static int last_use[MAX_TEMPS];
+static int interference_graph[MAX_TEMPS][MAX_TEMPS];
+static int color[MAX_TEMPS];
+
+// Mark that a temporary was used at the specified line.
+// Temporaries must start with 'r' followed by a number.
+// As a special case, the usage of 'rfp' is ignored
+void mark_temp_use(char *temp, int line) {
+    if (temp != NULL && temp[0] == 'r' && !streq(temp, "rfp") ) {
+        int reg_num = atoi(temp + 1);
+        if (first_use[reg_num] == -1) {
+            first_use[reg_num] = line;
+            num_temps++;
+        }
+        last_use[reg_num] = line;
     }
+}
+
+// Create the life-time table for every temporary used
+void build_table(code_t *code) {
+    memset(first_use, -1, sizeof(first_use));
+    memset(last_use, -1, sizeof(last_use));
+
+    code_t *current = code;
+    int line = 1;
+    while (current != NULL) {
+        struct iloc_t inst = current->instruction;
+
+        mark_temp_use(inst.arg1, line);
+        mark_temp_use(inst.arg2, line);
+        mark_temp_use(inst.arg3, line);
+
+        current = current->next;
+        line++;
+    }
+}
+
+// Build the interference graph based on the life-time table
+void build_graph() {
+    memset(interference_graph, 0, sizeof(interference_graph));
+
+    for (int temp1 = 0; temp1 < num_temps; temp1++) {
+        for (int temp2 = temp1; temp2 < num_temps; temp2++) {
+            if (
+                (first_use[temp1] <= first_use[temp2] && first_use[temp2] <= last_use[temp1]) || (first_use[temp2] <= first_use[temp1] && first_use[temp1] <= last_use[temp2])
+            ) {
+                interference_graph[temp1][temp2] = 1;
+                interference_graph[temp2][temp1] = 1;
+            }
+        }
+    }    
+}
+
+// Color the interference graph to assign registers
+void color_graph() {
+    memset(color, -1, sizeof(color));
+    int colored_nodes = 0;
+
+    while (colored_nodes < num_temps) {
+        int max_degree = -1;
+        int max_degree_node = 0;
+
+        for (int i = 0; i < num_temps; i++) {
+            if (color[i] != -1) continue;
+            int node_degree = 0;
+            for (int j = 0; j < num_temps; j++) {
+                if (i != j && interference_graph[i][j] && color[j] == -1) {
+                    node_degree++;
+                }
+            }
+            if (node_degree > max_degree) {
+                max_degree = node_degree;
+                max_degree_node = i;
+            }
+        }
+
+        if (max_degree > NUM_REGISTERS) {
+            printf("The program require more registers than available\n");
+            exit(ERR_REG_COUNT);
+        }
+
+        for (int possible_color = 0; possible_color < NUM_REGISTERS; possible_color++) {
+            int found = 1;
+            for (int adj = 0; adj < num_temps; adj++) {
+                if (interference_graph[max_degree_node][adj] == 1 && color[adj] == possible_color) {
+                    found = 0;
+                    break;
+                }
+            }
+            if (found) {
+                color[max_degree_node] = possible_color;
+                break;
+            }
+        }
+        colored_nodes++;
+    }
+}
+
+// Perform register assignment
+void assign_registers(code_t *code) {
+    build_table(code);
+    build_graph();
+    color_graph();
+}
+
+// Get the real registers assigned to the temporary value
+char* get_register(char *temp) {
+    char* register_map[NUM_REGISTERS] = {
+        "%ebx", "%ecx", "%edx", "%esi", "%edi","%r8d", "%r9d",
+        "%r10d", "%r11d", "%r12d", "%r13d", "%r14d", "%r15d",
+    };
+
+    int temp_num = atoi(temp + 1);
+    return register_map[color[temp_num]];
 }
 
 void generate_preamble() {
@@ -57,6 +152,7 @@ void generate_epilogue() {
 	printf("\t.section .note.GNU-stack,\"\",@progbits\n");
 }
 
+// Translate a single iloc instruction to assembly
 void translate_instruction(struct iloc_t instruction) {
     if (instruction.label != NULL)
         printf("%s:\n", instruction.label);
@@ -144,6 +240,7 @@ void translate_instruction(struct iloc_t instruction) {
 }
 
 void generateAsm(code_t* ir_code) {
+    assign_registers(ir_code);
 
     generate_preamble();
 

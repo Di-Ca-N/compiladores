@@ -1,10 +1,15 @@
 main = > int {
-    int a;
-    int b;
-    a = 1;
-    b = 6;
-    while (a < b) {
-        a = a + 1;
+    int a, b, c, n;
+
+    a = 0;
+    b = 1;
+    n = 12;
+
+    while (n > 0) {
+        c = b;
+        b = a + b;
+        a = c;
+        n = n - 1;
     };
     return a;
 }

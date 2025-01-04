@@ -79,9 +79,7 @@ listaDeFuncoes
 funcao: empilha_tabela cabecalhoFuncao corpoFuncao desempilha_tabela 
     { 
         $$ = $2; 
-        node_add_child($$, $3); 
-        //code_print($3->code);
-        //printf("===========================\n");
+        node_add_child($$, $3);
         generateAsm($3->code);
     };
 
@@ -235,12 +233,7 @@ atribuicao
             char buf[100];
             snprintf(buf, sizeof(buf), "%d", symbol->offset);
 
-            $$->location = new_temp();
             $$->code = code_concat($3->code, code_create("storeAI", $3->location, "rfp", buf));
-
-            //code_print($$->code);
-
-            // ToDo: Code Generation
         }
     ;
 
@@ -287,8 +280,6 @@ blocoIf
             if($5 != NULL) node_add_child($$, $5);
             if($6 != NULL) node_add_child($$, $6);
 
-            // ToDo: Code Generation
-            
             char *true_label = new_label();
             char *false_label = new_label();
             char *final_label = new_label();
@@ -319,7 +310,6 @@ blocoWhile
                 node_add_child($$, $5); 
             }
 
-            // ToDo: Code Generation
             char *true_label = new_label();
             char *false_label = new_label();
             char *back_label = new_label();
